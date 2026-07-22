@@ -110,9 +110,8 @@ after the reseed job (see §6), and rely on Railway's "Wait for CI."
 1. **Secrets** (Settings → Secrets and variables → Actions):
    `DATABASE_URL_MIGRATIONS` = Neon **direct** owner/migration string. (Add the
    platform tokens from §6 only if you automate deploys.)
-2. **Branch protection** on `main`: require the `checks` and `validate-seed`
-   status checks before merge, so nothing reaches the reseed/deploy path
-   without passing.
+2. **Branch protection**: put a ruleset on `main` — see §5.1 for the exact
+   rules and which to enable.
 3. `ci.yml` already handles the rest: it validates the seed on every PR/push and
    reseeds Neon on a push to `main` that touches `db/**` (or on manual dispatch,
    which can also apply the schema).
@@ -121,6 +120,37 @@ after the reseed job (see §6), and rely on Railway's "Wait for CI."
 dispatch the workflow with `apply_schema = true` (applies schema, then reseeds)
 → connect Railway (§3) → connect Vercel (§4). After that, ordinary pushes keep
 everything in sync.
+
+### 5.1 Branch protection — a ruleset on `main`
+
+Use a **repository ruleset** (Settings → Rules → Rulesets → New branch ruleset)
+targeting `main`; rulesets are GitHub's current mechanism and stack more cleanly
+than a classic branch-protection rule. They're available on Free for public
+repos, and on Pro/Team/Enterprise for private ones. Below is the **full set of
+rules a branch ruleset offers**, in GitHub's own order, with what to do with each
+for GDTRKB.
+
+| Ruleset rule | For GDTRKB |
+|---|---|
+| **Restrict creations** | Off — not relevant to a single long-lived `main`. |
+| **Restrict updates** | Off — that's for locking a branch to bypassers only. |
+| **Restrict deletions** | **On** (default) — keep `main` from being deleted. |
+| **Require linear history** | Optional — on if you squash/rebase-merge; it blocks merge commits. |
+| **Require merge queue** | Off — unnecessary solo/low-traffic, and it needs a `merge_group` workflow trigger. |
+| **Require deployments to succeed before merging** | Optional — only worthwhile if you wire GitHub Environments for Vercel/Railway; usually more than this needs. |
+| **Require signed commits** | Optional hardening; adds friction (unsigned commits can't be merged on GitHub). |
+| **Require a pull request before merging** | **On** — the key rule: forces every change through a PR so CI runs before `main` (and before the reseed). Set **required approvals = 0** if you're solo (you can't approve your own PR); optionally enable **Require conversation resolution** and pick an allowed merge method (e.g. squash). |
+| **Require status checks to pass before merging** | **On** — select `checks` and `validate-seed` (add `reseed-branch` from `db-preview.yml` once Neon is wired). **Do not** select `changes` or `reseed` — they don't run on PRs, and a conditionally-skipped job reports "success," so requiring it protects nothing. Tick **Require branches to be up to date** (strict) if you want checks re-run against the latest `main`. |
+| **Block force pushes** | **On** (default). |
+| **Require code scanning results** | Off unless you enable code scanning. |
+| **Require workflows to pass before merging** | N/A here — an org/enterprise-level "ruleset workflows" feature, not a per-repo status check. |
+| **Metadata restrictions** (commit-message / author-email / branch-name patterns) | N/A on Free/Pro — a GitHub Enterprise feature. |
+| **Restrict file paths / path length / extensions / size** (push rules) | N/A on Free/Pro — Enterprise Cloud push rulesets. |
+
+Two notes. Add yourself to the ruleset's **bypass list** if you work solo, so a
+PR-required rule doesn't lock you out of your own repo. And the required status
+checks appear in the picker only **after they've run against a PR at least once**,
+so open one PR before configuring them.
 
 ---
 
