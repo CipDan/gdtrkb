@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Design tokens — "Phosphor" direction, locked in docs/design/design-tokens-3-phosphor.md.
+   This file implements those tokens; the doc is the source of truth for the decision. */
+:root {
+  --bg: #0a0a06;
+  --surface: #12100a;
+  --ink: #ffb000;
+  --bright: #ffce5c;
+  --pale: #fff1c9;
+  --dim: #9a7418;
+  --line: #3a2c08;
+
+  --font-display: var(--font-vt323), ui-monospace, Menlo, monospace;
+  --font-body: var(--font-vt323), ui-monospace, Menlo, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --radius: 0px;
+  --border-w: 1px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-bright: var(--bright);
+  --color-pale: var(--pale);
+  --color-dim: var(--dim);
+  --color-line: var(--line);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --radius-token: var(--radius);
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-cursor {
+    animation: none;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+:focus-visible {
+  outline: 3px solid var(--bright);
+  outline-offset: 2px;
+}
