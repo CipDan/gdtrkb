@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Style Directions — Game Dev Tools KB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --page-bg: #0d0d12;
+    --page-ink: #e7e7ef;
+    --page-dim: #9a9ab0;
+    --page-line: #26263a;
+    --lic-oss: #37d67a;
+    --lic-freeprop: #2ec4b6;
+    --lic-paid: #ffb703;
+    --lic-sub: #c77dff;
+  }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--page-ink);
+    font-family: Inter, system-ui, sans-serif;
+    line-height: 1.5;
+  }
+  a { color: inherit; }
+
+  /* ---------- page intro ---------- */
+  .intro { max-width: 1100px; margin: 0 auto; padding: 48px 24px 8px; }
+  .intro .kicker {
+    font-family: 'Press Start 2P', monospace; font-size: 11px; letter-spacing: .5px;
+    color: #21e6ff; margin: 0 0 18px;
+  }
+  .intro h1 { font-size: clamp(26px, 4vw, 40px); margin: 0 0 12px; letter-spacing: -.02em; }
+  .intro p { color: var(--page-dim); max-width: 62ch; margin: 0 0 10px; }
+  .intro .frame-note {
+    margin-top: 22px; padding: 14px 16px; border: 1px solid var(--page-line);
+    border-radius: 8px; background: #14141f; color: var(--page-dim); font-size: 14px; max-width: 72ch;
+  }
+  .intro .frame-note b { color: var(--page-ink); }
+
+  /* ---------- direction shell ---------- */
+  .dir { padding: 40px 0; }
+  .dir-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .dir-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 22px; }
+  .dir-head .eyebrow {
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    padding: 4px 8px; border-radius: 999px; border: 1px solid currentColor;
+  }
+  .dir-head h2 { font-size: clamp(22px, 3vw, 30px); margin: 0; }
+  .dir-head .intent { color: var(--page-dim); font-size: 15px; width: 100%; margin: 2px 0 0; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  .col { display: grid; gap: 22px; }
+  @media (max-width: 780px){ .grid { grid-template-columns: 1fr; } }
+
+  .panel { border-radius: 10px; overflow: hidden; }
+  .panel-label {
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--page-dim); margin: 0 0 8px;
+  }
+
+  /* palette */
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sw { width: 84px; border-radius: 8px; overflow: hidden; border: 1px solid var(--page-line); }
+  .sw .chip { height: 46px; }
+  .sw .hex { font-size: 10px; padding: 4px 6px; color: var(--page-dim); background: #12121c; letter-spacing: .03em; }
+
+  /* type specimen */
+  .type-demo .display-line { line-height: 1.1; margin: 0 0 10px; }
+  .type-demo .body-line { margin: 0; color: var(--page-dim); }
+
+  /* ============================================================= */
+  /*  DIRECTION 1 — CARTRIDGE                                        */
+  /* ============================================================= */
+  .d1 {
+    background: #1b1030;
+    --ink: #efe8fb; --dim: #b3a4d6; --line: #0c0718;
+    --a1: #7c5cff; --a2: #2ec4b6; --score: #ffb703;
+    --card: #f4efe3; --card-ink: #241a12; --card-dim: #6b5d49;
+    color: var(--ink);
+  }
+  .d1 .dir-head .eyebrow { color: #2ec4b6; }
+  .d1 .dir-head h2 { font-family: 'Silkscreen', monospace; }
+  .d1 .type-demo .display-line { font-family: 'Silkscreen', monospace; font-size: 22px; color: var(--ink); }
+  .d1 .wordmark { font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 26px; color: var(--ink); letter-spacing: 1px; }
+  .d1 .wordmark span { color: var(--a2); }
+
+  .d1 .cartridge {
+    background: var(--card); color: var(--card-ink); border: 3px solid var(--line);
+    border-radius: 6px 6px 8px 8px; position: relative; padding: 18px 16px 16px;
+    box-shadow: 6px 6px 0 var(--line);
+  }
+  .d1 .cartridge::before { /* cartridge notch */
+    content: ""; position: absolute; top: -3px; right: 22px; width: 46px; height: 12px;
+    background: var(--card); border: 3px solid var(--line); border-top: none; border-radius: 0 0 6px 6px;
+  }
+  .d1 .cart-top { display: flex; gap: 12px; align-items: center; }
+  .d1 .logo-frame {
+    width: 46px; height: 46px; flex: none; border: 3px solid var(--line); border-radius: 6px;
+    background: #d8e6ff; display: grid; place-items: center; font-family: 'Silkscreen'; font-size: 18px; color: #274b8f;
+  }
+  .d1 .cart-name { font-family: 'Silkscreen', monospace; font-size: 16px; margin: 0; }
+  .d1 .cart-summary { font-size: 13.5px; color: var(--card-dim); margin: 12px 0 12px; }
+  .d1 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .d1 .tag { font-size: 11px; padding: 3px 8px; border: 2px solid var(--line); border-radius: 999px; background: #efe3ff; color: #3a2270; }
+
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 4px 9px; border-radius: 6px; display: inline-block; }
+  .d1 .badge.type { background: var(--a1); color: #fff; border: 2px solid var(--line); }
+  .d1 .badge.lic-oss { background: var(--lic-oss); color: #06331a; border: 2px solid var(--line); }
+  .d1 .badge.lic-paid { background: var(--lic-paid); color: #3a2a00; border: 2px solid var(--line); }
+
+  .d1 .btn { font-family: Inter; font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 6px; border: 3px solid var(--line); cursor: pointer; }
+  .d1 .btn-primary { background: var(--a2); color: #06251f; box-shadow: 4px 4px 0 var(--line); }
+  .d1 .btn-secondary { background: transparent; color: var(--ink); border-color: var(--ink); box-shadow: 4px 4px 0 rgba(255,255,255,.15); }
+  .d1 .btn-pressed { background: var(--a2); color: #06251f; box-shadow: 0 0 0 var(--line); transform: translate(4px,4px); }
+
+  .d1 .search { display: flex; border: 3px solid var(--line); border-radius: 8px; overflow: hidden; box-shadow: 4px 4px 0 var(--line); background: var(--card); }
+  .d1 .search input { flex: 1; border: 0; padding: 11px 12px; font-family: Inter; font-size: 14px; background: transparent; color: var(--card-ink); }
+  .d1 .search input::placeholder { color: var(--card-dim); }
+  .d1 .search .go { background: var(--a1); color: #fff; border: 0; padding: 0 16px; font-family: 'Silkscreen'; font-size: 12px; cursor: pointer; }
+
+  /* high-score board (shared skeleton, themed per direction) */
+  .hsb { width: 100%; border-collapse: collapse; }
+  .hsb caption { text-align: left; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; }
+  .hsb th, .hsb td { text-align: left; padding: 8px 10px; font-size: 13px; }
+  .hsb .rank { width: 34px; text-align: center; }
+  .hsb .score { text-align: right; font-variant-numeric: tabular-nums; }
+  .d1 .hsb { background: #12092a; border: 3px solid var(--line); border-radius: 8px; }
+  .d1 .hsb caption { color: var(--dim); }
+  .d1 .hsb thead th { font-family: 'Silkscreen'; font-size: 11px; color: var(--a2); border-bottom: 2px solid var(--line); }
+  .d1 .hsb td { border-bottom: 1px solid #2a1b47; }
+  .d1 .hsb .rank { font-family: 'Silkscreen'; color: var(--score); }
+  .d1 .hsb .score { color: var(--score); font-weight: 700; }
+
+  /* ============================================================= */
+  /*  DIRECTION 2 — ATTRACT MODE                                    */
+  /* ============================================================= */
+  .d2 {
+    background: radial-gradient(120% 100% at 50% -10%, #101430 0%, #06060c 60%);
+    --ink: #eaf6ff; --dim: #8892b0; --line: #232544;
+    --a1: #21e6ff; --a2: #ff3fb4; --score: #ffd23f;
+    --surface: #0f1020;
+    color: var(--ink);
+  }
+  .d2 .dir-head .eyebrow { color: #ff3fb4; }
+  .d2 .dir-head h2 { font-family: 'Press Start 2P', monospace; font-size: clamp(16px,2.4vw,20px); }
+  .d2 .type-demo .display-line { font-family: 'Press Start 2P', monospace; font-size: 15px; color: var(--ink); line-height: 1.5; }
+  .d2 .wordmark {
+    font-family: 'Press Start 2P', monospace; font-size: 20px; color: #fff;
+    text-shadow: 0 0 6px var(--a1), 0 0 14px rgba(33,230,255,.55); letter-spacing: 1px;
+  }
+  .d2 .wordmark span { color: var(--a2); text-shadow: 0 0 6px var(--a2), 0 0 14px rgba(255,63,180,.5); }
+
+  .d2 .cartridge {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 18px 16px;
+    box-shadow: 0 0 0 1px rgba(33,230,255,.06), 0 10px 30px rgba(0,0,0,.5);
+  }
+  .d2 .cart-top { display: flex; gap: 12px; align-items: center; }
+  .d2 .logo-frame {
+    width: 46px; height: 46px; flex: none; border: 1px solid var(--a1); border-radius: 4px;
+    background: #0b1030; display: grid; place-items: center; font-family: 'Press Start 2P'; font-size: 12px; color: var(--a1);
+  }
+  .d2 .cart-name { font-family: 'Press Start 2P', monospace; font-size: 12px; margin: 0; line-height: 1.4; }
+  .d2 .cart-summary { font-size: 13.5px; color: var(--dim); margin: 12px 0; }
+  .d2 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .d2 .tag { font-size: 11px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--a1); }
+
+  .d2 .badge.type { background: transparent; color: var(--a1); border: 1px solid var(--a1); }
+  .d2 .badge.lic-oss { background: transparent; color: var(--lic-oss); border: 1px solid var(--lic-oss); }
+  .d2 .badge.lic-paid { background: transparent; color: var(--lic-paid); border: 1px solid var(--lic-paid); }
+
+  .d2 .btn { font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 12px 16px; border-radius: 3px; cursor: pointer; }
+  .d2 .btn-primary { background: var(--a1); color: #04121a; border: 1px solid var(--a1); box-shadow: 0 0 14px rgba(33,230,255,.45); }
+  .d2 .btn-secondary { background: transparent; color: var(--a2); border: 1px solid var(--a2); }
+  .d2 .btn-pressed { background: #0a5f6e; color: #cffcff; border: 1px solid var(--a1); box-shadow: none; }
+
+  .d2 .search { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; background: var(--surface); }
+  .d2 .search input { flex: 1; border: 0; padding: 12px; font-family: Inter; font-size: 14px; background: transparent; color: var(--ink); }
+  .d2 .search input::placeholder { color: var(--dim); }
+  .d2 .search .go { background: var(--a1); color: #04121a; border: 0; padding: 0 16px; font-family: 'Press Start 2P'; font-size: 9px; cursor: pointer; }
+
+  .d2 .hsb { background: var(--surface); border: 1px solid var(--a1); border-radius: 4px; box-shadow: 0 0 22px rgba(33,230,255,.12); }
+  .d2 .hsb caption { color: var(--a2); font-family: 'Press Start 2P'; font-size: 10px; }
+  .d2 .hsb thead th { font-family: 'Press Start 2P'; font-size: 9px; color: var(--a1); border-bottom: 1px solid var(--line); padding-top: 12px; padding-bottom: 12px; }
+  .d2 .hsb td { border-bottom: 1px solid #191a30; }
+  .d2 .hsb .rank { color: var(--score); font-family: 'Press Start 2P'; font-size: 11px; }
+  .d2 .hsb .score { color: var(--score); font-weight: 700; }
+
+  /* ============================================================= */
+  /*  DIRECTION 3 — PHOSPHOR                                        */
+  /* ============================================================= */
+  .d3 {
+    background: #0a0a06;
+    --ink: #ffb000; --dim: #9a7418; --line: #3a2c08; --bright: #ffce5c; --pale: #fff1c9;
+    color: var(--ink);
+    font-family: 'VT323', ui-monospace, Menlo, monospace;
+  }
+  .d3 .panel-label, .d3 .dir-head .intent { color: var(--dim); }
+  .d3 .dir-head .eyebrow { color: var(--bright); }
+  .d3 .dir-head h2 { font-family: 'VT323', monospace; font-size: 34px; color: var(--ink); }
+  .d3 .type-demo .display-line { font-family: 'VT323', monospace; font-size: 30px; color: var(--ink); }
+  .d3 .type-demo .body-line { font-family: 'VT323', monospace; font-size: 18px; color: var(--dim); }
+  .d3 .wordmark { font-family: 'VT323', monospace; font-size: 34px; color: var(--ink); letter-spacing: 1px; }
+  .d3 .wordmark .cur { color: var(--bright); animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce){ .d3 .wordmark .cur { animation: none; } }
+
+  .d3 .cartridge { background: transparent; border: 1px solid var(--line); border-radius: 0; padding: 16px; }
+  .d3 .cart-top { display: flex; gap: 12px; align-items: center; }
+  .d3 .logo-frame { width: 46px; height: 46px; flex: none; border: 1px solid var(--line); border-radius: 0; display: grid; place-items: center; font-family: 'VT323'; font-size: 22px; color: var(--ink); }
+  .d3 .cart-name { font-family: 'VT323', monospace; font-size: 24px; margin: 0; color: var(--pale); }
+  .d3 .cart-summary { font-size: 17px; color: var(--dim); margin: 10px 0; font-family: 'VT323'; }
+  .d3 .tags { display: flex; flex-wrap: wrap; gap: 6px; font-family: 'VT323'; font-size: 16px; }
+  .d3 .tag { padding: 1px 8px; border: 1px solid var(--line); color: var(--ink); }
+  .d3 .tag::before { content: "› "; color: var(--dim); }
+
+  .d3 .badge { font-family: 'VT323'; font-size: 16px; font-weight: 400; border-radius: 0; padding: 1px 8px; border: 1px solid currentColor; background: transparent; }
+  .d3 .badge.type { color: var(--bright); }
+  .d3 .badge.lic-oss { color: var(--ink); }
+  .d3 .badge.lic-oss::before { content: "["; } .d3 .badge.lic-oss::after { content: "]"; }
+  .d3 .badge.lic-paid { color: var(--ink); }
+  .d3 .badge.lic-paid::before { content: "["; } .d3 .badge.lic-paid::after { content: "]"; }
+
+  .d3 .btn { font-family: 'VT323', monospace; font-size: 19px; padding: 6px 16px; border-radius: 0; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+  .d3 .btn-primary { background: var(--ink); color: #0a0a06; }
+  .d3 .btn-secondary { background: transparent; color: var(--ink); }
+  .d3 .btn-pressed { background: var(--bright); color: #0a0a06; border-color: var(--bright); }
+  .d3 .btn::before { content: "> "; }
+
+  .d3 .search { display: flex; border: 1px solid var(--line); border-radius: 0; background: transparent; align-items: center; }
+  .d3 .search .prompt { padding: 0 4px 0 10px; color: var(--bright); font-family: 'VT323'; font-size: 20px; }
+  .d3 .search input { flex: 1; border: 0; padding: 8px 6px; font-family: 'VT323'; font-size: 19px; background: transparent; color: var(--ink); }
+  .d3 .search input::placeholder { color: var(--dim); }
+  .d3 .search .go { background: transparent; color: var(--bright); border: 0; border-left: 1px solid var(--line); padding: 8px 14px; font-family: 'VT323'; font-size: 18px; cursor: pointer; }
+
+  .d3 .hsb { border: 1px solid var(--line); }
+  .d3 .hsb caption { color: var(--dim); font-family: 'VT323'; font-size: 18px; }
+  .d3 .hsb th, .d3 .hsb td { font-family: 'VT323'; font-size: 18px; }
+  .d3 .hsb thead th { color: var(--bright); border-bottom: 1px solid var(--line); }
+  .d3 .hsb td { border-bottom: 1px dotted var(--line); }
+  .d3 .hsb .rank { color: var(--bright); }
+  .d3 .hsb .score { color: var(--pale); }
+
+  /* shared small helpers */
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .stack { display: grid; gap: 14px; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #21e6ff; outline-offset: 2px; }
+  .foot { max-width: 1100px; margin: 0 auto; padding: 30px 24px 60px; color: var(--page-dim); font-size: 14px; }
+  .foot code { background: #14141f; padding: 2px 6px; border-radius: 4px; color: #cdcde0; }
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <p class="kicker">STYLE DIRECTIONS · v1</p>
+  <h1>Three takes on “retro accent, modern bones”</h1>
+  <p>Same shared frame in all three: a retro <em>display</em> face used only for the wordmark, headings, and the score column; a clean sans (or legible mono) for everything you actually read; chunky bordered cards and buttons; the results table as a high-score board.</p>
+  <p>What changes is <em>which corner of the retro-games world</em> the flavor comes from — and how much execution each one asks for. Every panel shows the same pieces (wordmark, palette, type, a tool “cartridge” card, badges, buttons, search, high-score rows) using your real seed data, so you're comparing like for like.</p>
+  <div class="frame-note"><b>Wordmark “TOOLDEX” is a placeholder</b> (tool + -dex, like a catalog/Pokédex). Swap for the real name later — it's here only to show how the display face sets.</div>
+</header>
+
+<!-- =============================== DIRECTION 1 =============================== -->
+<section class="dir d1">
+  <div class="dir-inner">
+    <div class="dir-head">
+      <span class="eyebrow">Most flavor · higher effort</span>
+      <h2>1 · Cartridge</h2>
+      <p class="intent">Cards are game cartridges — light printed “labels” on a deep console-purple shelf. Warm, collectible, tactile. Signature: the notched cartridge card with a hard drop-shadow.</p>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Palette</p>
+          <div class="swatches">
+            <div class="sw"><div class="chip" style="background:#1b1030"></div><div class="hex">#1B1030</div></div>
+            <div class="sw"><div class="chip" style="background:#7c5cff"></div><div class="hex">#7C5CFF</div></div>
+            <div class="sw"><div class="chip" style="background:#2ec4b6"></div><div class="hex">#2EC4B6</div></div>
+            <div class="sw"><div class="chip" style="background:#ffb703"></div><div class="hex">#FFB703</div></div>
+            <div class="sw"><div class="chip" style="background:#f4efe3"></div><div class="hex">#F4EFE3</div></div>
+          </div>
+        </div>
+        <div class="panel type-demo">
+          <p class="panel-label">Type · Silkscreen + Inter</p>
+          <p class="display-line">GAME ENGINES</p>
+          <p class="body-line">Body copy is Inter — the pixel face never carries a paragraph, only labels and headings, so long text stays easy to read.</p>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Wordmark</p>
+          <div class="wordmark">TOOL<span>DEX</span></div>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Search</p>
+          <div class="search"><input placeholder="Search tools…" aria-label="Search tools"><button class="go">GO</button></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Tool card</p>
+          <article class="cartridge">
+            <div class="cart-top">
+              <div class="logo-frame">GO</div>
+              <div><h3 class="cart-name">Godot Engine</h3>
+              <div class="row" style="margin-top:6px"><span class="badge type">GAME ENGINE</span><span class="badge lic-oss">FREE / OSS</span></div></div>
+            </div>
+            <p class="cart-summary">Free, open-source 2D/3D engine with its own editor and the GDScript language.</p>
+            <div class="tags"><span class="tag">Gameplay Scripting</span><span class="tag">Development</span></div>
+          </article>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Buttons</p>
+          <div class="row"><button class="btn btn-primary">View tool</button><button class="btn btn-secondary">Add filter</button><button class="btn btn-pressed">Pressed</button></div>
+        </div>
+        <div class="panel">
+          <table class="hsb"><caption>Popularity — high scores</caption>
+            <thead><tr><th class="rank">#</th><th>Tool</th><th class="score">Titles</th></tr></thead>
+            <tbody>
+              <tr><td class="rank">1</td><td>Godot Engine</td><td class="score">1,200</td></tr>
+              <tr><td class="rank">2</td><td>Ren'Py</td><td class="score">500</td></tr>
+              <tr><td class="rank">3</td><td>Pygame</td><td class="score">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== DIRECTION 2 =============================== -->
+<section class="dir d2">
+  <div class="dir-inner">
+    <div class="dir-head">
+      <span class="eyebrow">Boldest · highest effort</span>
+      <h2>2 · Attract Mode</h2>
+      <p class="intent">An arcade cabinet's attract screen: black cabinet, dual neon (cyan + magenta), gold scores. The high-score board is the hero. Signature: a neon-glow wordmark — the one place the glow is spent.</p>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Palette</p>
+          <div class="swatches">
+            <div class="sw"><div class="chip" style="background:#06060c"></div><div class="hex">#06060C</div></div>
+            <div class="sw"><div class="chip" style="background:#21e6ff"></div><div class="hex">#21E6FF</div></div>
+            <div class="sw"><div class="chip" style="background:#ff3fb4"></div><div class="hex">#FF3FB4</div></div>
+            <div class="sw"><div class="chip" style="background:#ffd23f"></div><div class="hex">#FFD23F</div></div>
+            <div class="sw"><div class="chip" style="background:#0f1020"></div><div class="hex">#0F1020</div></div>
+          </div>
+        </div>
+        <div class="panel type-demo">
+          <p class="panel-label">Type · Press Start 2P + Inter</p>
+          <p class="display-line">HIGH SCORES</p>
+          <p class="body-line" style="color:#8892b0">Press Start 2P is set small and sparse — headings and the score column only. Inter carries all the reading text at a comfortable size.</p>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Wordmark</p>
+          <div class="wordmark">TOOL<span>DEX</span></div>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Search</p>
+          <div class="search"><input placeholder="Search tools…" aria-label="Search tools"><button class="go">GO</button></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Tool card</p>
+          <article class="cartridge">
+            <div class="cart-top">
+              <div class="logo-frame">GO</div>
+              <div><h3 class="cart-name">Godot Engine</h3>
+              <div class="row" style="margin-top:8px"><span class="badge type">GAME ENGINE</span><span class="badge lic-oss">FREE / OSS</span></div></div>
+            </div>
+            <p class="cart-summary">Free, open-source 2D/3D engine with its own editor and the GDScript language.</p>
+            <div class="tags"><span class="tag">Gameplay Scripting</span><span class="tag">Development</span></div>
+          </article>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Buttons</p>
+          <div class="row"><button class="btn btn-primary">VIEW</button><button class="btn btn-secondary">FILTER</button><button class="btn btn-pressed">PRESSED</button></div>
+        </div>
+        <div class="panel">
+          <table class="hsb"><caption>POPULARITY</caption>
+            <thead><tr><th class="rank">#</th><th>TOOL</th><th class="score">TITLES</th></tr></thead>
+            <tbody>
+              <tr><td class="rank">1</td><td>Godot Engine</td><td class="score">1,200</td></tr>
+              <tr><td class="rank">2</td><td>Ren'Py</td><td class="score">500</td></tr>
+              <tr><td class="rank">3</td><td>Pygame</td><td class="score">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== DIRECTION 3 =============================== -->
+<section class="dir d3">
+  <div class="dir-inner">
+    <div class="dir-head">
+      <span class="eyebrow">Most minimal · lowest effort</span>
+      <h2>3 · Phosphor</h2>
+      <p class="intent">A single-hue amber terminal readout. Type does everything; chrome is almost nothing. Cheapest to build and hardest to make look generic — the restraint is the style. Signature: text-mode framing and a blinking cursor.</p>
+    </div>
+    <div class="grid">
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Palette</p>
+          <div class="swatches">
+            <div class="sw"><div class="chip" style="background:#0a0a06"></div><div class="hex">#0A0A06</div></div>
+            <div class="sw"><div class="chip" style="background:#ffb000"></div><div class="hex">#FFB000</div></div>
+            <div class="sw"><div class="chip" style="background:#ffce5c"></div><div class="hex">#FFCE5C</div></div>
+            <div class="sw"><div class="chip" style="background:#fff1c9"></div><div class="hex">#FFF1C9</div></div>
+            <div class="sw"><div class="chip" style="background:#3a2c08"></div><div class="hex">#3A2C08</div></div>
+          </div>
+        </div>
+        <div class="panel type-demo">
+          <p class="panel-label">Type · VT323 (one family)</p>
+          <p class="display-line">TERMINAL READOUT</p>
+          <p class="body-line">One monospace family at two sizes. It reads like a text-mode UI, which keeps the whole thing coherent with almost no styling.</p>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Wordmark</p>
+          <div class="wordmark">TOOLDEX<span class="cur">_</span></div>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Search</p>
+          <div class="search"><span class="prompt">&gt;</span><input placeholder="search tools" aria-label="Search tools"><button class="go">RUN</button></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="panel">
+          <p class="panel-label">Tool card</p>
+          <article class="cartridge">
+            <div class="cart-top">
+              <div class="logo-frame">GO</div>
+              <div><h3 class="cart-name">Godot Engine</h3>
+              <div class="row" style="margin-top:6px"><span class="badge type">GAME ENGINE</span><span class="badge lic-oss">FREE/OSS</span></div></div>
+            </div>
+            <p class="cart-summary">Free, open-source 2D/3D engine with its own editor and the GDScript language.</p>
+            <div class="tags"><span class="tag">Gameplay Scripting</span><span class="tag">Development</span></div>
+          </article>
+        </div>
+        <div class="panel">
+          <p class="panel-label">Buttons</p>
+          <div class="row"><button class="btn btn-primary">view tool</button><button class="btn btn-secondary">add filter</button><button class="btn btn-pressed">pressed</button></div>
+        </div>
+        <div class="panel">
+          <table class="hsb"><caption>// popularity</caption>
+            <thead><tr><th class="rank">#</th><th>tool</th><th class="score">titles</th></tr></thead>
+            <tbody>
+              <tr><td class="rank">1</td><td>Godot Engine</td><td class="score">1200</td></tr>
+              <tr><td class="rank">2</td><td>Ren'Py</td><td class="score">500</td></tr>
+              <tr><td class="rank">3</td><td>Pygame</td><td class="score">null</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  Pick a whole direction, or mix: the palette from one, the card treatment from another. Once you choose, the next step is turning it into <code>design-tokens</code> (colors, type scale, spacing, component specs) that §9 of the app spec can reference and the implementing model can follow.
+</footer>
+
+</body>
+</html>
