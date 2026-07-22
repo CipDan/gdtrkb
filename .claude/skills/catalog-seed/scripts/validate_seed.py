@@ -31,7 +31,15 @@ def strip_line_comments(sql: str) -> str:
 
 
 def split_statements(sql: str):
-    """Split on ';' that are OUTSIDE single-quoted strings (with '' escaping)."""
+    """
+    Split SQL text into statements at semicolons outside single-quoted strings.
+    
+    Parameters:
+    	sql (str): SQL text to split, including SQL-style escaped apostrophes.
+    
+    Returns:
+    	list[str]: Statements separated by semicolons, including any trailing non-empty text.
+    """
     stmts, buf, in_str, i = [], [], False, 0
     while i < len(sql):
         c = sql[i]
@@ -55,16 +63,43 @@ def split_statements(sql: str):
 
 
 def unescape(s: str) -> str:
+    """
+    Convert doubled single quotes to single quotes in a SQL string.
+    
+    Parameters:
+    	s (str): The string containing SQL-style escaped apostrophes.
+    
+    Returns:
+    	str: The string with escaped apostrophes converted to single quotes.
+    """
     return s.replace("''", "'")
 
 
 def statements_for(stmts, table: str):
+    """Filter SQL statements that contain an INSERT INTO clause for the specified table.
+    
+    Parameters:
+        stmts: SQL statements to search.
+        table (str): Table name used in the INSERT INTO clause.
+    
+    Returns:
+        list[str]: Statements containing an INSERT INTO clause for the specified table.
+    """
     pat = re.compile(r"INSERT INTO " + re.escape(table) + r"(?![\w_])")
     return [s for s in stmts if pat.search(s)]
 
 
 def defined_slugs(stmts, table: str):
-    """First quoted token of each VALUES row is the slug. Returns list (to spot dups)."""
+    """
+    Extracts slugs defined by INSERT statements for a table.
+    
+    Parameters:
+        stmts: Parsed SQL statements.
+        table (str): Table whose defined slugs should be extracted.
+    
+    Returns:
+        list[str]: Slugs in row order, including duplicates.
+    """
     out = []
     for s in statements_for(stmts, table):
         out += [unescape(m) for m in re.findall(r"\('((?:[^']|'')*?)'\s*,", s)]
@@ -72,6 +107,16 @@ def defined_slugs(stmts, table: str):
 
 
 def referenced_slugs(sql: str, table: str):
+    """
+    Extract the slugs referenced by subqueries for a table.
+    
+    Parameters:
+    	sql (str): SQL text to search.
+    	table (str): Table whose slug references should be extracted.
+    
+    Returns:
+    	set[str]: Unique referenced slugs.
+    """
     pat = r"FROM " + re.escape(table) + r" WHERE slug='((?:[^']|'')*?)'"
     return {unescape(m) for m in re.findall(pat, sql)}
 
@@ -90,6 +135,16 @@ def area_parent_map(stmts):
 
 
 def main() -> int:
+    """
+    Validate the seed SQL file and report structural or referential-integrity problems.
+    
+    The file path is read from the first command-line argument, or defaults to
+    `DEFAULT_PATH`. Returns an error status if the file cannot be read or any
+    validation checks fail.
+    
+    Returns:
+    	int: `0` if all checks pass, `1` otherwise.
+    """
     path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PATH
     try:
         raw = open(path, encoding="utf-8").read()
