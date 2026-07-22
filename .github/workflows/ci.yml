@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      apply_schema:
+        description: 'Also apply db/01_schema.sql before reseeding (schema provisioning / change). Expects an empty or reset DB.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded PR runs, but never interrupt a push/dispatch (a migration
+  # must not be killed mid-run).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # 1) App quality gates (see CLAUDE.md -> Commands). Runs on PRs and pushes.
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test --if-present
+
+  # 2) Seed validation — always runs and gates the reseed. Pure stdlib Python.
+  validate-seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 .claude/skills/catalog-seed/scripts/validate_seed.py db/02_seed.sql
+
+  # 3) Did db/** change? Efficiency gate for the reseed. Skipped on PRs, since
+  #    the reseed never runs from a PR anyway.
+  changes:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      db: ${{ steps.detect.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "db=true" >> "$GITHUB_OUTPUT"
+          else
+            base='${{ github.event.before }}'
+            if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+              echo "db=true" >> "$GITHUB_OUTPUT"        # new branch / unknown base -> reseed
+            elif git diff --name-only "$base" '${{ github.sha }}' | grep -q '^db/'; then
+              echo "db=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "db=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  # 4) Reseed Neon with the now-idempotent db/02_seed.sql (its leading TRUNCATE
+  #    makes re-running safe). Runs only after the gates pass, and only on a
+  #    push to main that touched db/**, or on manual dispatch.
+  reseed:
+    needs: [checks, validate-seed, changes]
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.db == 'true') }}
+    runs-on: ubuntu-latest   # psql ships preinstalled on the ubuntu-latest image
+    steps:
+      - uses: actions/checkout@v4
+
+      # Schema is applied only on a manual dispatch with the opt-in checked.
+      # 01_schema.sql uses CREATE TYPE/TABLE (not IF NOT EXISTS), so it expects
+      # an empty or freshly reset database; afterwards you must re-GRANT the
+      # SELECT-only role that PostGraphile connects as.
+      - name: Apply schema (manual, opt-in)
+        if: ${{ inputs.apply_schema }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/01_schema.sql
+
+      - name: Reseed catalog
+        env:
+          # A role with DDL/INSERT rights — NOT the SELECT-only role PostGraphile
+          # connects as at runtime. Repo Settings -> Secrets and variables -> Actions.
+          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/02_seed.sql
+
+# ---------------------------------------------------------------------------
+# Deploys: Vercel (frontend) and Railway (API) redeploy from their own GitHub
+# integrations on push to main, so no deploy step lives here. For strict
+# migrate-then-deploy ordering, turn off their auto-deploy and add a deploy job
+# with `needs: [reseed]`.
+# ---------------------------------------------------------------------------

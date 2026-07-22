@@ -1,0 +1,50 @@
+name: DB preview branch
+
+# Spin up an isolated Neon branch per PR (a copy-on-write clone of production,
+# so it already carries the schema), reassert the seed into it, and delete the
+# branch when the PR closes. This turns a seed change into a real load test
+# against a production-shaped database, with zero risk to prod.
+#
+# Requires: secret NEON_API_KEY and variable NEON_PROJECT_ID — both created for
+# you by the Neon GitHub integration. See docs/ci-deploy-setup.md §6.
+#
+# Because the branch inherits production's schema, this reapplies ONLY
+# db/02_seed.sql (idempotent via its leading TRUNCATE). A PR that changes
+# db/01_schema.sql is not exercised here — apply the schema delta separately.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+concurrency:
+  group: db-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  reseed-branch:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest   # psql ships preinstalled on ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create / update the PR's Neon branch
+        id: branch
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+      - name: Reseed the branch
+        env:
+          DATABASE_URL: ${{ steps.branch.outputs.db_url }}
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/02_seed.sql
+
+  delete-branch:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the PR's Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}

@@ -3,6 +3,9 @@
 -- Run AFTER 01_schema.sql:
 --   psql "$DATABASE_URL" -f 02_seed.sql
 -- FK ids are resolved by slug subquery so this script is id-agnostic.
+-- RE-RUNNABLE: a leading TRUNCATE … CASCADE clears the catalog first, so the
+-- file can be applied any number of times (CI, docker first-boot, or by hand)
+-- and always reasserts exactly this data. Runs in one transaction.
 --
 -- Coverage: 26 tools spanning game engines (incl. no-code: Construct 3,
 -- GDevelop, Twine, RPG Maker), frameworks/libraries, asset creators,
@@ -19,6 +22,11 @@
 -- =====================================================================
 
 BEGIN;
+
+-- 0) RESET: clear the catalog so this file is re-runnable. These five roots
+-- CASCADE to every join / link / relationship table, and RESTART IDENTITY
+-- resets the id sequences (safe — everything external keys off slugs).
+TRUNCATE tool, area_of_use, platform, language, game RESTART IDENTITY CASCADE;
 
 -- 1) AREA OF USE (parents first, then leaves) -----------------------------
 INSERT INTO area_of_use (slug, name) VALUES
