@@ -13,12 +13,22 @@ gdtrkb/
 ├─ CLAUDE.md                   # agent operating manual (lean) → links into /docs
 ├─ README.md                   # human-facing project readme
 ├─ .env.example                # env var NAMES only (no secrets committed)
-├─ .github/workflows/ci.yml    # lint · typecheck · test · run migrations · deploy
+├─ .github/
+│  └─ workflows/
+│     ├─ ci.yml                # checks (lint·typecheck·test) · seed validation · idempotent reseed
+│     └─ db-preview.yml        # Neon branch per PR: reseed it, delete on close
+├─ .claude/
+│  └─ skills/
+│     └─ catalog-seed/         # project skill: seed-authoring conventions (auto-loads on seed work)
+│        ├─ SKILL.md
+│        └─ scripts/
+│           └─ validate_seed.py # referential-integrity checker (CI gate + local)
 ├─ docs/                       # project-level specs — source of truth (see §4)
 │  ├─ architecture.md          #   this file
 │  ├─ app-spec.md              #   MVP application build spec (the WHAT)
 │  ├─ schema-spec.md           #   DB schema + GraphQL API contract
 │  ├─ deployment.md            #   hosting patterns + the two deploy paths
+│  ├─ ci-deploy-setup.md       #   CI + deploy runbook (GitHub · Vercel · Railway · Neon)
 │  └─ design/
 │     ├─ design-tokens-3-phosphor.md # the CHOSEN token doc — "Phosphor" (authoritative for UI)
 │     ├─ design-tokens-*.md          # alternate directions, kept for reference
@@ -26,9 +36,9 @@ gdtrkb/
 │     └─ phosphor-hifi-mock.html     # pixel reference for the chosen direction
 ├─ db/                         # database + API-engine assets
 │  ├─ 01_schema.sql            # DDL + bidirectional view + rollup functions
-│  ├─ 02_seed.sql              # sample/seed data (curator-owned)
+│  ├─ 02_seed.sql              # catalog seed (curator-owned; re-runnable via a leading TRUNCATE)
 │  ├─ docker-compose.yml       # Postgres + PostGraphile + Caddy (VPS path)
-│  └─ postgraphile/Dockerfile  # the PostGraphile container (Cloud Run / always-on)
+│  └─ postgraphile/Dockerfile  # the PostGraphile container (Railway / always-on)
 ├─ public/                     # static assets, self-hosted fonts, logo frames
 └─ src/                        # the Next.js application (see §2)
 ```
@@ -113,6 +123,9 @@ src/
 | A new route/page | `src/app/…` |
 | A design token change | `docs/design/<chosen>.md` (decision) → `src/styles/globals.css` (impl) |
 | A DB schema change | `db/01_schema.sql` **and** update `docs/schema-spec.md` |
+| A catalog / seed data change | `db/02_seed.sql` (conventions enforced by the `catalog-seed` skill) |
+| A new agent skill | `.claude/skills/<name>/SKILL.md` (auto-discovered by its description) |
+| A CI or deploy-pipeline change | `.github/workflows/` (setup steps in `docs/ci-deploy-setup.md`) |
 | A whole-project spec/decision | `docs/…` |
 | A note about one module | co-located `README.md` in that folder, linking back to `/docs` |
 

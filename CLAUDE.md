@@ -14,7 +14,11 @@ GDTRKB is a **read-only, public, curator-populated catalog** of game-development
 - **`docs/architecture.md`** — folder structure, module map, where new files go, docs policy.
 - **`docs/schema-spec.md`** — DB schema + GraphQL API contract. Queries map to its §5.2x.
 - **`docs/deployment.md`** — the two deploy paths.
+- **`docs/ci-deploy-setup.md`** — CI & deploy setup runbook: GitHub Actions, Vercel, Railway, and Neon wiring, plus what can be driven from workflows.
 - **`docs/design/design-tokens-3-phosphor.md`** — the chosen design system ("Phosphor", locked in `app-spec §9`); authoritative for all UI tokens. Pixel reference: `docs/design/phosphor-hifi-mock.html`.
+
+## Next.js: ALWAYS read docs before coding
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
 
 ## How we work — every feature
 1. **Read this file**, then open the spec section(s) for the feature.
