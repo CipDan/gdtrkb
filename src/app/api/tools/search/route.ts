@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
     const results = await searchTools(filterState);
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Tool search failed:", error);
+    console.error(
+      "Tool search failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { error: "Search is temporarily unavailable." },
       { status: 502 },

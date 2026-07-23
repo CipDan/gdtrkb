@@ -54,6 +54,14 @@ function parseEnum<T extends string>(
     : null;
 }
 
+// Only "true"/"false" are valid; anything else (missing, malformed, or
+// mistyped) is treated as absent instead of silently becoming `false`.
+function parseBoolean(value: string | null): boolean | null {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return null;
+}
+
 export function parseFilterState(params: URLSearchParams): FilterState {
   return {
     q: params.get("q") ?? DEFAULT_FILTER_STATE.q,
@@ -63,9 +71,7 @@ export function parseFilterState(params: URLSearchParams): FilterState {
     target: params.get("target"),
     language: params.get("language"),
     licensing: parseEnum(params.get("licensing"), LICENSING_MODELS),
-    hasBuiltInEditor: params.has("hasBuiltInEditor")
-      ? params.get("hasBuiltInEditor") === "true"
-      : null,
+    hasBuiltInEditor: parseBoolean(params.get("hasBuiltInEditor")),
     sort: (params.get("sort") as SortKey | null) ?? DEFAULT_FILTER_STATE.sort,
     view: (params.get("view") as ViewMode | null) ?? DEFAULT_FILTER_STATE.view,
     cursor: params.get("cursor"),
