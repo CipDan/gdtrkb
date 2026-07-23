@@ -22,7 +22,14 @@ concurrency:
 
 jobs:
   reseed-branch:
-    if: github.event.action != 'closed'
+    # Skip (don't fail) until Neon is wired. NEON_PROJECT_ID is a repo *variable*
+    # created alongside NEON_API_KEY by the Neon GitHub integration, so its
+    # presence is a reliable proxy for "credentials exist." Note: the secrets
+    # context is NOT available in a job-level if, so we can't test the API key
+    # directly here — the variable is the thing we can check.
+    if: >-
+      github.event.action != 'closed' &&
+      vars.NEON_PROJECT_ID != ''
     runs-on: ubuntu-latest   # psql ships preinstalled on ubuntu-latest
     steps:
       - uses: actions/checkout@v4
