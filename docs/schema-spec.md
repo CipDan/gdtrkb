@@ -838,7 +838,7 @@ type Game {
 
 - **Read-only surface.** Start PostGraphile with default mutations disabled (`--disable-default-mutations` / `disableDefaultMutations: true`). Optionally run under a Postgres role with `SELECT`-only grants for defense in depth.
 - **Seeding.** Populate via idempotent SQL seed scripts or a small admin script that upserts on `slug`. Keep reference tables (`platform`, `language`, `area_of_use`) seeded first, then `tool`, then join/edge rows, then `game` + `tool_game`.
-- **Filtering.** Enable `postgraphile-plugin-connection-filter` for the relation/field filters shown above. Enable the standard `orderBy` and connection pagination.
+- **Filtering.** Enable `postgraphile-plugin-connection-filter` for the relation/field filters shown above. Enable the standard `orderBy` and connection pagination. **Relation filters** (the `some`/`every`/`none` shape in query (c) above, e.g. `toolPlatforms: { some: { platform: { slug: … } } }`) need the plugin's `connectionFilterRelations` build option set to `true` — it defaults to `false`, and there is no CLI flag for it, so it can only be set running PostGraphile in library mode (§6.1).
 - **Naming.** Use PostGraphile smart comments/inflectors to shorten auto-generated field names (e.g. `toolPlatformsByToolId` → `platforms`) if you want the tidy SDL in §5.
 - **Hierarchy queries.** `parent`/`children` come from the self FK. For "all tools under X including descendants," either rely on the shallow (2-level) structure and query one level of children, or add a recursive CTE exposed as a function if depth grows.
 - **Timestamps.** `updated_at` can be maintained by a simple `BEFORE UPDATE` trigger if desired.
@@ -848,7 +848,7 @@ type Game {
 
 ### 6.1 Running PostGraphile (Core)
 
-**CLI (quickest):**
+**CLI (quickest — exploration only):**
 
 ```bash
 npm install -g postgraphile postgraphile-plugin-connection-filter
@@ -865,26 +865,28 @@ postgraphile \
 
 `--disable-default-mutations` gives the queries-only surface; `--append-plugins …connection-filter` enables the `filter:` arguments used in §5.2; `--watch` live-reloads the GraphQL schema when the database schema changes; GraphiQL is served at `/graphiql`.
 
-**Library mode (Node/Express)** — for when you want to pin config in code:
+> **Limitation:** the CLI has no flag for the connection-filter plugin's `connectionFilterRelations` build option, so the relation `some`/`every`/`none` filters in query (c) above (platform/area/language) are **not** available this way — every non-relation query in §5.2 works fine, but that one filter shape needs library mode below. There is no `.postgraphilerc.js` workaround either; that legacy config file only covers the same option set as the CLI flags.
+
+**Library mode (Node, plain `http`)** — required to enable relation filters, and what this project actually runs (`db/postgraphile/server.js`, wired into `db/postgraphile/Dockerfile`):
 
 ```js
-const express = require("express");
+const http = require("http");
 const { postgraphile } = require("postgraphile");
 const ConnectionFilterPlugin = require("postgraphile-plugin-connection-filter");
 
-const app = express();
-app.use(
-  postgraphile(process.env.DATABASE_URL, "public", {
-    appendPlugins: [ConnectionFilterPlugin],
-    disableDefaultMutations: true,   // read-only public surface
-    graphiql: true,
-    enhanceGraphiql: true,
-    watchPg: true,
-    dynamicJson: true,
-  })
-);
-app.listen(5000);
+const middleware = postgraphile(process.env.DATABASE_URL, "public", {
+  appendPlugins: [ConnectionFilterPlugin],
+  disableDefaultMutations: true,   // read-only public surface
+  graphiql: true,
+  graphileBuildOptions: {
+    connectionFilterRelations: true, // enables the some/every/none relation filters
+  },
+});
+
+http.createServer(middleware).listen(5000);
 ```
+
+`postgraphile(...)`'s return value is a plain Node request handler, so no Express/Connect layer is needed. `graphileBuildOptions.connectionFilterRelations: true` is the one option this project's search page depends on that the CLI cannot express.
 
 > Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies; not needed for a private read-only catalog.
 

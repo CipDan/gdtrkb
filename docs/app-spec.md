@@ -83,10 +83,10 @@ The app **assumes no schema changes**. If a field is needed that the schema does
 
 ## 4. Backend / API wiring
 
-PostGraphile is run exactly as described in the schema spec §6.1, with:
+PostGraphile is run exactly as described in the schema spec §6.1 (library mode, not the CLI — see that section for why), with:
 
-- `--disable-default-mutations` (queries-only public surface),
-- `--append-plugins postgraphile-plugin-connection-filter` (enables the `filter:` arguments the search page uses),
+- `disableDefaultMutations: true` (queries-only public surface),
+- `postgraphile-plugin-connection-filter` appended, with `graphileBuildOptions.connectionFilterRelations: true` (enables the `filter:` arguments the search page uses, including the platform/area/language relation filters — the CLI-only setup cannot express that last option),
 - connection (Relay cursor) pagination and `orderBy` enabled (default).
 
 The app uses these API capabilities (all already defined in the schema spec — do not invent new ones):

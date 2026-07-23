@@ -5,6 +5,13 @@ import { searchTools } from "@/lib/search/searchTools";
 import { getFacetOptions } from "@/lib/graphql/facets";
 import { getPopularityChartData } from "@/lib/graphql/popularity";
 import { buildAreaOfUseTree } from "@/lib/areas";
+import type { ToolsConnection } from "@/lib/graphql/types";
+
+const EMPTY_RESULTS: ToolsConnection = {
+  nodes: [],
+  pageInfo: { hasNextPage: false, endCursor: null },
+  totalCount: 0,
+};
 
 type RawSearchParams = { [key: string]: string | string[] | undefined };
 
@@ -24,7 +31,11 @@ function toSearchParams(raw: RawSearchParams): URLSearchParams {
 // Search page (app-spec §6/§7): default route, shows the full catalog
 // paginated in the card grid, sorted by name, when there's no query/facets.
 // Data-fetching (results + facet options + popularity chart) runs
-// server-side; failures propagate to app/error.tsx per §7.9.
+// server-side; facet-options/popularity failures still propagate to
+// app/error.tsx per §7.9. The search itself is caught below instead, so a
+// deep-linked/shared URL whose filters the upstream rejects (or any other
+// search-specific failure) degrades to the same retry banner the client-side
+// re-fetch already shows, rather than crashing the whole page.
 export default async function SearchPage({
   searchParams,
 }: {
@@ -32,8 +43,8 @@ export default async function SearchPage({
 }) {
   const filterState = parseFilterState(toSearchParams(await searchParams));
 
-  const [results, facets, popularity] = await Promise.all([
-    searchTools(filterState),
+  const [searchResult, facets, popularity] = await Promise.all([
+    searchTools(filterState).catch(() => null),
     getFacetOptions(),
     getPopularityChartData(),
   ]);
@@ -47,7 +58,12 @@ export default async function SearchPage({
       </h1>
 
       <SearchPageClient
-        initialResults={results}
+        initialResults={searchResult ?? EMPTY_RESULTS}
+        initialError={
+          searchResult === null
+            ? "Search is temporarily unavailable. The API may be cold-starting."
+            : null
+        }
         areaTree={areaTree}
         platforms={facets.platforms}
         languages={facets.languages}

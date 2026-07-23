@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // db/postgraphile is a separate deployable (its own package.json, plain
+    // CommonJS Node script for the PostGraphile container) — not part of the
+    // Next.js app this config targets.
+    "db/**",
   ]),
 ]);
 

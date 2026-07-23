@@ -17,6 +17,10 @@ import type { AreaOfUseTreeNode } from "@/lib/areas";
 
 interface SearchPageClientProps {
   initialResults: ToolsConnection;
+  // Set when the server-side search in app/page.tsx failed (e.g. upstream
+  // down) so the page renders the same retry banner as a failed client fetch
+  // instead of crashing to app/error.tsx.
+  initialError?: string | null;
   areaTree: AreaOfUseTreeNode[];
   platforms: { slug: string; name: string }[];
   languages: { slug: string; name: string }[];
@@ -54,6 +58,7 @@ function describeActiveFilters(
 // component only mirrors it into fetches against the BFF route.
 export default function SearchPageClient({
   initialResults,
+  initialError = null,
   areaTree,
   platforms,
   languages,
@@ -66,7 +71,7 @@ export default function SearchPageClient({
 
   const [data, setData] = useState<ToolsConnection>(initialResults);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   // Cursor stack lives in the URL (see filters.cursorHistory), not local
   // state, so a reload or shared link on page 2+ still supports "prev".
   const cursorHistory = filters.cursorHistory;

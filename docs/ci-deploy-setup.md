@@ -97,12 +97,16 @@ server-to-server, and PostGraphile calls Neon.
    WAITING state until your GitHub Actions checks pass — so a red build never
    ships the API.
 
+The container runs PostGraphile in library mode (`db/postgraphile/server.js`,
+`node server.js`), not the CLI — needed so
+`graphileBuildOptions.connectionFilterRelations` can be set (schema-spec §6.1;
+the CLI has no flag for it, and the search page's platform/area/language
+facet filters depend on it).
+
 Dockerfile hardening the file itself flags as TODO before going public:
-- Append `--disable-graphiql` to the CMD (GraphiQL is on by default), and
-  optionally `--retry-on-init-fail` so a cold DB at boot doesn't crash-loop.
-- Swap the `npm install postgraphile@^4 …` ranges for a copied
-  `package.json` + `package-lock.json` and `npm ci --omit=dev`, so builds are
-  reproducible.
+- Set `graphiql: false` in `server.js` (GraphiQL is on by default). A cold
+  DB at boot crash-looping (the CLI's `--retry-on-init-fail`) has no library-mode
+  equivalent yet — would need manual retry logic in `server.js` if wanted.
 - Add `USER node` to run non-root.
 
 ---
