@@ -46,7 +46,9 @@ jobs:
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/02_seed.sql
 
   delete-branch:
-    if: github.event.action == 'closed'
+    if: >- 
+      github.event.action == 'closed' &&
+      vars.NEON_PROJECT_ID != ''
     runs-on: ubuntu-latest
     steps:
       - name: Delete the PR's Neon branch
