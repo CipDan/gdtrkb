@@ -14,13 +14,22 @@ const SimplifyInflectorPlugin = require("@graphile-contrib/pg-simplify-inflector
 
 const port = process.env.PORT || 5000;
 
+// Safe by default: GraphiQL stays off unless explicitly opted into (local/dev
+// testing). Requires ENABLE_GRAPHIQL=true rather than defaulting on, since the
+// prior default-on behavior shipped to the public Railway deployment
+// unflipped (Dockerfile note [4]).
+const enableGraphiql = process.env.ENABLE_GRAPHIQL === "true";
+
 const middleware = postgraphile(process.env.DATABASE_URL, "public", {
   appendPlugins: [ConnectionFilterPlugin, SimplifyInflectorPlugin],
   disableDefaultMutations: true,
-  graphiql: true, // TODO: flip to false before going public (Dockerfile note [4])
+  graphiql: enableGraphiql,
   graphileBuildOptions: {
     connectionFilterRelations: true,
   },
+  // Retry schema build instead of crashing if the DB isn't reachable yet on
+  // container start (e.g. Neon cold-starting behind Railway).
+  retryOnInitFail: true,
 });
 
 http.createServer(middleware).listen(port, "0.0.0.0", () => {

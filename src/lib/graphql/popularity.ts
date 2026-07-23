@@ -11,19 +11,25 @@ interface PopularityChartWire {
   missing: { totalCount: number };
 }
 
+// Never throws — the search page must still render (degrading to an empty
+// chart) when the API is cold-starting or unreachable (app-spec §7.9).
 export const getPopularityChartData = cache(
   async (): Promise<PopularityChartData> => {
-    const result = await withTimeout(
-      graphqlClient.request<PopularityChartWire>({
-        document: POPULARITY_CHART_QUERY,
-        variables: { first: CHART_SIZE },
-        signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
-      }),
-    );
+    try {
+      const result = await withTimeout(
+        graphqlClient.request<PopularityChartWire>({
+          document: POPULARITY_CHART_QUERY,
+          variables: { first: CHART_SIZE },
+          signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+        }),
+      );
 
-    return {
-      topTools: result.topTools.nodes,
-      missingCount: result.missing.totalCount,
-    };
+      return {
+        topTools: result.topTools.nodes,
+        missingCount: result.missing.totalCount,
+      };
+    } catch {
+      return { topTools: [], missingCount: 0 };
+    }
   },
 );

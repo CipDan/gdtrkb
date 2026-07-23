@@ -104,10 +104,13 @@ the CLI has no flag for it, and the search page's platform/area/language
 facet filters depend on it).
 
 Dockerfile hardening the file itself flags as TODO before going public:
-- Set `graphiql: false` in `server.js` (GraphiQL is on by default). A cold
-  DB at boot crash-looping (the CLI's `--retry-on-init-fail`) has no library-mode
-  equivalent yet — would need manual retry logic in `server.js` if wanted.
+- GraphiQL: DONE — `server.js` defaults it off; it only turns on if
+  `ENABLE_GRAPHIQL=true` is set (e.g. for local/dev testing). Leave that
+  variable unset in Railway.
 - Add `USER node` to run non-root.
+- Startup crash-loop protection: DONE — `server.js` sets `retryOnInitFail: true`,
+  so PostGraphile retries the schema build instead of crashing if Neon isn't
+  reachable yet at container start (e.g. cold-starting behind Railway).
 
 ---
 

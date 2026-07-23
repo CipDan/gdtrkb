@@ -31,11 +31,12 @@ function toSearchParams(raw: RawSearchParams): URLSearchParams {
 // Search page (app-spec §6/§7): default route, shows the full catalog
 // paginated in the card grid, sorted by name, when there's no query/facets.
 // Data-fetching (results + facet options + popularity chart) runs
-// server-side; facet-options/popularity failures still propagate to
-// app/error.tsx per §7.9. The search itself is caught below instead, so a
-// deep-linked/shared URL whose filters the upstream rejects (or any other
-// search-specific failure) degrades to the same retry banner the client-side
-// re-fetch already shows, rather than crashing the whole page.
+// server-side; getFacetOptions/getPopularityChartData never throw (they
+// degrade to empty data on failure, per §7.9's cold-start handling). The
+// search itself is caught below instead, so a deep-linked/shared URL whose
+// filters the upstream rejects (or any other search-specific failure)
+// degrades to the same retry banner the client-side re-fetch already shows,
+// rather than crashing the whole page.
 export default async function SearchPage({
   searchParams,
 }: {

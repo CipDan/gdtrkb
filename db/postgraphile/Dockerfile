@@ -17,9 +17,9 @@
 #                      the WHOLE tree is reproducible, not just the two top-level
 #                      packages. Bump a version by editing package.json and
 #                      regenerating the lockfile (`npm install`), then commit it.
-#   [4] GraphiQL      — enabled by default in server.js (handy while testing).
-#                      For a public production endpoint, flip `graphiql: false`
-#                      in server.js.
+#   [4] GraphiQL      — off by default (server.js). Set env var
+#                      ENABLE_GRAPHIQL=true to turn it on for local/dev testing;
+#                      leave unset in Railway → Variables for production.
 #   [5] Schema        — 'public' is assumed; change the schema argument in
 #                      server.js if you use another.
 #   [6] Library mode  — runs PostGraphile via its library API (server.js), not
@@ -54,15 +54,20 @@ COPY server.js ./
 ENV PORT=5000
 EXPOSE 5000
 
+# Run as the unprivileged `node` user baked into node:22-slim (uid/gid 1000).
+# server.js only reads /app (no runtime writes), so the default world-readable
+# permissions from the COPY/npm ci steps above are sufficient — no chown needed.
+USER node
+
 # [6] DATABASE_URL and PORT are read from the environment at runtime (never
 # baked in) by server.js, which also carries disableDefaultMutations and the
 # same plugins the old CLI invocation used.
 CMD ["node", "server.js"]
 
 # ── Production hardening notes (optional, recommended) ──────────────────────
-#  • Run as non-root: add `USER node` (and ensure /app is readable by it).
+#  • Run as non-root: DONE — see `USER node` above.
 #  • Reproducible installs: DONE — see the `npm ci` step above. Regenerate and
 #    re-commit package-lock.json whenever you change a version in package.json.
 #  • The SELECT-only DB role (in DATABASE_URL) is the primary write guard;
 #    disableDefaultMutations (server.js) is the second layer. Keep both.
-#  • Before going public: set `graphiql: false` in server.js (see note [4]).
+#  • GraphiQL: DONE — off unless ENABLE_GRAPHIQL=true is set (see note [4]).

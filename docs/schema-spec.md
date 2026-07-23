@@ -873,9 +873,10 @@ postgraphile \
 const http = require("http");
 const { postgraphile } = require("postgraphile");
 const ConnectionFilterPlugin = require("postgraphile-plugin-connection-filter");
+const SimplifyInflectorPlugin = require("@graphile-contrib/pg-simplify-inflector");
 
 const middleware = postgraphile(process.env.DATABASE_URL, "public", {
-  appendPlugins: [ConnectionFilterPlugin],
+  appendPlugins: [ConnectionFilterPlugin, SimplifyInflectorPlugin],
   disableDefaultMutations: true,   // read-only public surface
   graphiql: true,
   graphileBuildOptions: {
