@@ -17,19 +17,19 @@ export default function HighScoreTable({ nodes, loading, error }: ResultsViewPro
       </caption>
       <thead>
         <tr>
-          <th className="w-9 border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
+          <th scope="col" className="w-9 border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
             #
           </th>
-          <th className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
+          <th scope="col" className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
             tool
           </th>
-          <th className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
+          <th scope="col" className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
             type
           </th>
-          <th className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
+          <th scope="col" className="border-b border-line px-3 py-1.5 text-left text-[17px] font-normal text-bright">
             licensing
           </th>
-          <th className="border-b border-line px-3 py-1.5 text-right text-[17px] font-normal text-bright">
+          <th scope="col" className="border-b border-line px-3 py-1.5 text-right text-[17px] font-normal text-bright">
             titles
           </th>
         </tr>

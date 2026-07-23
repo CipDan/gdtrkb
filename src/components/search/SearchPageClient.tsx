@@ -200,8 +200,8 @@ export default function SearchPageClient({
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            hasPrev={cursorHistory.length > 0}
-            hasNext={data.pageInfo.hasNextPage}
+            hasPrev={!error && cursorHistory.length > 0}
+            hasNext={!error && data.pageInfo.hasNextPage}
             loading={loading}
             onPrev={handlePrev}
             onNext={handleNext}
