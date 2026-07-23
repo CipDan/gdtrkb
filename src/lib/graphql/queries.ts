@@ -19,9 +19,13 @@ export const TOOLS_SEARCH_QUERY = gql`
         logoImageUrl
         hasBuiltInEditor
         confirmedCommercialTitlesCount
-        areasOfUse {
-          slug
-          name
+        toolAreaOfUses {
+          nodes {
+            areaOfUse {
+              slug
+              name
+            }
+          }
         }
       }
       pageInfo {
