@@ -59,7 +59,7 @@ export default function SearchBar({
         }}
         placeholder="search tools by name or summary"
         aria-label="Search tools by name or summary"
-        className="flex-1 bg-transparent px-1.5 py-2 text-[19px] text-ink placeholder:text-dim focus-visible:outline-none"
+        className="flex-1 bg-transparent px-1.5 py-2 text-[19px] text-ink placeholder:text-dim"
       />
       <span className="hidden border-l border-line px-2.5 text-[15px] text-dim sm:inline">
         name + summary

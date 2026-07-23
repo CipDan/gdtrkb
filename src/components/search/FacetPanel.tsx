@@ -94,81 +94,129 @@ export default function FacetPanel({
         </FacetGroup>
 
         <FacetGroup lead="area of use">
-          {areaTree.map((parent) => (
-            <div key={parent.slug}>
-              <OptionButton
-                checked={filters.area === parent.slug}
-                label={parent.name}
-                onClick={() =>
-                  onChange({ area: filters.area === parent.slug ? null : parent.slug })
-                }
-              />
-              {parent.children.map((child) => (
+          <div role="radiogroup" aria-label="Area of use">
+            <OptionButton
+              radio
+              checked={filters.area === null}
+              label="any"
+              onClick={() => onChange({ area: null })}
+            />
+            {areaTree.map((parent) => (
+              <div key={parent.slug}>
                 <OptionButton
-                  key={child.slug}
-                  indent
-                  checked={filters.area === child.slug}
-                  label={child.name}
+                  radio
+                  checked={filters.area === parent.slug}
+                  label={parent.name}
                   onClick={() =>
-                    onChange({ area: filters.area === child.slug ? null : child.slug })
+                    onChange({ area: filters.area === parent.slug ? null : parent.slug })
                   }
                 />
-              ))}
-            </div>
-          ))}
+                {parent.children.map((child) => (
+                  <OptionButton
+                    key={child.slug}
+                    radio
+                    indent
+                    checked={filters.area === child.slug}
+                    label={child.name}
+                    onClick={() =>
+                      onChange({ area: filters.area === child.slug ? null : child.slug })
+                    }
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
           <p className="mt-0.5 text-[14px] text-dim">selecting a parent includes its children</p>
         </FacetGroup>
 
         <FacetGroup lead="runs on">
-          {platforms.map((platform) => (
+          <div role="radiogroup" aria-label="Runs on">
             <OptionButton
-              key={platform.slug}
-              checked={filters.hostOs === platform.slug}
-              label={platform.name}
-              onClick={() =>
-                onChange({ hostOs: filters.hostOs === platform.slug ? null : platform.slug })
-              }
+              radio
+              checked={filters.hostOs === null}
+              label="any"
+              onClick={() => onChange({ hostOs: null })}
             />
-          ))}
+            {platforms.map((platform) => (
+              <OptionButton
+                key={platform.slug}
+                radio
+                checked={filters.hostOs === platform.slug}
+                label={platform.name}
+                onClick={() =>
+                  onChange({ hostOs: filters.hostOs === platform.slug ? null : platform.slug })
+                }
+              />
+            ))}
+          </div>
         </FacetGroup>
 
         <FacetGroup lead="exports to">
-          {platforms.map((platform) => (
+          <div role="radiogroup" aria-label="Exports to">
             <OptionButton
-              key={platform.slug}
-              checked={filters.target === platform.slug}
-              label={platform.name}
-              onClick={() =>
-                onChange({ target: filters.target === platform.slug ? null : platform.slug })
-              }
+              radio
+              checked={filters.target === null}
+              label="any"
+              onClick={() => onChange({ target: null })}
             />
-          ))}
+            {platforms.map((platform) => (
+              <OptionButton
+                key={platform.slug}
+                radio
+                checked={filters.target === platform.slug}
+                label={platform.name}
+                onClick={() =>
+                  onChange({ target: filters.target === platform.slug ? null : platform.slug })
+                }
+              />
+            ))}
+          </div>
         </FacetGroup>
 
         <FacetGroup lead="language">
-          {languages.map((language) => (
+          <div role="radiogroup" aria-label="Language">
             <OptionButton
-              key={language.slug}
-              checked={filters.language === language.slug}
-              label={language.name}
-              onClick={() =>
-                onChange({ language: filters.language === language.slug ? null : language.slug })
-              }
+              radio
+              checked={filters.language === null}
+              label="any"
+              onClick={() => onChange({ language: null })}
             />
-          ))}
+            {languages.map((language) => (
+              <OptionButton
+                key={language.slug}
+                radio
+                checked={filters.language === language.slug}
+                label={language.name}
+                onClick={() =>
+                  onChange({
+                    language: filters.language === language.slug ? null : language.slug,
+                  })
+                }
+              />
+            ))}
+          </div>
         </FacetGroup>
 
         <FacetGroup lead="licensing">
-          {LICENSING_OPTIONS.map((opt) => (
+          <div role="radiogroup" aria-label="Licensing">
             <OptionButton
-              key={opt.value}
-              checked={filters.licensing === opt.value}
-              label={opt.label}
-              onClick={() =>
-                onChange({ licensing: filters.licensing === opt.value ? null : opt.value })
-              }
+              radio
+              checked={filters.licensing === null}
+              label="any"
+              onClick={() => onChange({ licensing: null })}
             />
-          ))}
+            {LICENSING_OPTIONS.map((opt) => (
+              <OptionButton
+                key={opt.value}
+                radio
+                checked={filters.licensing === opt.value}
+                label={opt.label}
+                onClick={() =>
+                  onChange({ licensing: filters.licensing === opt.value ? null : opt.value })
+                }
+              />
+            ))}
+          </div>
         </FacetGroup>
 
         <div className="mb-4 last:mb-0">

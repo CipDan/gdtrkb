@@ -168,10 +168,12 @@ export default function SearchPageClient({
 
         <div>
           <div className="mb-3 flex flex-wrap items-baseline gap-4">
-            <span className="text-[16px] text-dim">
-              {data.totalCount} tool{data.totalCount === 1 ? "" : "s"}
-              {filterSummary ? ` · filtered by ${filterSummary}` : ""}
-            </span>
+            {!error && (
+              <span className="text-[16px] text-dim">
+                {data.totalCount} tool{data.totalCount === 1 ? "" : "s"}
+                {filterSummary ? ` · filtered by ${filterSummary}` : ""}
+              </span>
+            )}
             <div className="ml-auto flex items-center gap-4">
               <SortControl value={filters.sort} onChange={(sort) => applyFilters({ sort })} />
               <ViewSwitch value={filters.view} onChange={handleViewChange} />
@@ -197,15 +199,17 @@ export default function SearchPageClient({
             <ActiveViewComponent nodes={data.nodes} loading={loading} error={error} />
           )}
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            hasPrev={!error && cursorHistory.length > 0}
-            hasNext={!error && data.pageInfo.hasNextPage}
-            loading={loading}
-            onPrev={handlePrev}
-            onNext={handleNext}
-          />
+          {!error && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              hasPrev={cursorHistory.length > 0}
+              hasNext={data.pageInfo.hasNextPage}
+              loading={loading}
+              onPrev={handlePrev}
+              onNext={handleNext}
+            />
+          )}
         </div>
       </div>
     </div>
