@@ -104,4 +104,138 @@ assert.strictEqual(
 );
 assert.match(overBudgetErrors[0].message, /exceeding the maximum/);
 
+// Exponential fragment-spread blowup: a chain of N fragments where each
+// spreads the previous one twice. Un-memoized, evaluating the outermost
+// fragment costs O(2^N) traversal work; memoized by fragment name it's
+// O(N). Asserts both correctness (the true, exponential field count is
+// still detected and rejected) and speed (completes well under a second
+// even for N=60, where an un-memoized traversal would never return).
+function buildFragmentChainQuery(chainLength) {
+  let fragments = "fragment F0 on Query { x }\n";
+  for (let i = 1; i <= chainLength; i++) {
+    fragments += `fragment F${i} on Query { ...F${i - 1} ...F${i - 1} }\n`;
+  }
+  return fragments + `query Deep { ...F${chainLength} }`;
+}
+
+// Exercises maxQueryCostRule only, not the full static-rules pipeline:
+// "postgraphile:validationRules:static" also wires in the third-party
+// graphql-depth-limit package (rules[0]), whose own fragment-spread
+// traversal (determineDepth in graphql-depth-limit/index.js) is separately
+// non-memoized and would dominate this timing, masking whether *this*
+// fix works. rules[1] is maxQueryCostRule() — see the static-rules array
+// in guardrails.js's module.exports.
+function collectCostRuleErrors(query) {
+  const documentAST = parse(query);
+  const errors = [];
+  const context = {
+    getDocument: () => documentAST,
+    reportError: (error) => errors.push(error),
+  };
+  const rules = guardrails["postgraphile:validationRules:static"]([]);
+  visit(documentAST, rules[1](context));
+  return errors;
+}
+
+const chainLength = 60;
+const fragmentChainStart = Date.now();
+const fragmentChainErrors = collectCostRuleErrors(
+  buildFragmentChainQuery(chainLength),
+);
+const fragmentChainElapsedMs = Date.now() - fragmentChainStart;
+
+assert.ok(
+  fragmentChainElapsedMs < 1000,
+  `expected memoized traversal to finish in under 1s, took ${fragmentChainElapsedMs}ms`,
+);
+assert.strictEqual(
+  fragmentChainErrors.length,
+  1,
+  `expected exactly 1 error for a ${chainLength}-deep fragment chain, got ${fragmentChainErrors.length}`,
+);
+assert.match(fragmentChainErrors[0].message, /exceeding the maximum/);
+
+// guardedDepthLimit: caps total FRAGMENT_SPREAD occurrences in the raw
+// document before ever calling the third-party graphql-depth-limit
+// package, whose own fragment expansion (determineDepth) has the same
+// unmemoized-recursion problem as this file's own two functions above, just
+// living in a dependency this file doesn't control. These check three
+// things: a document with exactly MAX_FRAGMENT_SPREADS spreads still
+// passes, one over the cap is rejected, and — the important regression
+// guard — a plain over-depth query with no fragments at all is still
+// caught by the real depthLimit, proving the wrapper delegates rather than
+// silently disabling depth-limiting for ordinary documents.
+function buildLinearFragmentChain(levels) {
+  let fragments = "fragment F0 on Query { x }\n";
+  for (let i = 1; i <= levels; i++) {
+    fragments += `fragment F${i} on Query { ...F${i - 1} }\n`;
+  }
+  return fragments + `query Chain { ...F${levels} }`;
+}
+
+assert.strictEqual(
+  collectStaticErrors(buildLinearFragmentChain(guardrails.MAX_FRAGMENT_SPREADS - 1))
+    .length,
+  0,
+  "expected a document with exactly MAX_FRAGMENT_SPREADS spreads to pass",
+);
+
+const overSpreadCapErrors = collectStaticErrors(
+  buildLinearFragmentChain(guardrails.MAX_FRAGMENT_SPREADS),
+);
+assert.strictEqual(
+  overSpreadCapErrors.length,
+  1,
+  `expected exactly 1 error for a document one spread over the cap, got ${overSpreadCapErrors.length}`,
+);
+assert.match(
+  overSpreadCapErrors[0].message,
+  /fragment spreads, exceeding the maximum/,
+);
+
+function buildDeepNoFragmentsQuery(depth) {
+  let inner = "leaf";
+  for (let i = 0; i < depth; i++) inner = `field { ${inner} }`;
+  return `query TooDeep { ${inner} }`;
+}
+
+const overDepthErrors = collectStaticErrors(
+  buildDeepNoFragmentsQuery(guardrails.MAX_QUERY_DEPTH + 2),
+);
+assert.strictEqual(
+  overDepthErrors.length,
+  1,
+  `expected the real depthLimit to still reject a plain over-depth query, got ${overDepthErrors.length}: ${overDepthErrors.map((e) => e.message).join("; ")}`,
+);
+assert.match(overDepthErrors[0].message, /exceeds maximum operation depth/);
+
+assert.strictEqual(
+  collectStaticErrors(
+    buildDeepNoFragmentsQuery(guardrails.MAX_QUERY_DEPTH - 2),
+  ).length,
+  0,
+  "expected a plain under-depth query with no fragments to pass",
+);
+
+// Full pipeline, not just maxQueryCostRule in isolation: confirms
+// guardedDepthLimit itself resolves the attack chain fast (rather than
+// falling through to the vulnerable depthLimit) and reports its own
+// fragment-spread-cap error alongside maxQueryCostRule's.
+const attackChainStart = Date.now();
+const attackChainErrors = collectStaticErrors(
+  buildFragmentChainQuery(chainLength),
+);
+const attackChainElapsedMs = Date.now() - attackChainStart;
+
+assert.ok(
+  attackChainElapsedMs < 1000,
+  `expected guardedDepthLimit to reject the attack chain fast, took ${attackChainElapsedMs}ms`,
+);
+assert.ok(
+  attackChainErrors.some((e) =>
+    /fragment spreads, exceeding the maximum/.test(e.message),
+  ),
+  `expected a fragment-spread-cap error among: ${attackChainErrors.map((e) => e.message).join("; ")}`,
+);
+
 console.log("guardrails.test.js: ok");

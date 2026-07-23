@@ -15,7 +15,7 @@
 // headroom over that for legitimate future queries while still rejecting
 // the deeply-nested-relation or huge-page-size requests a public,
 // unauthenticated GraphQL endpoint is otherwise wide open to.
-const { Kind, GraphQLError } = require("graphql");
+const { Kind, GraphQLError, visit } = require("graphql");
 const depthLimit = require("graphql-depth-limit");
 
 const MAX_QUERY_DEPTH = 10;
@@ -27,6 +27,56 @@ const MAX_PAGE_SIZE = 100;
 // which individually satisfies MAX_QUERY_DEPTH and MAX_PAGE_SIZE but which
 // collectively multiply resolver/DB work far beyond either check's reach.
 const MAX_QUERY_COST = 200;
+
+// graphql-depth-limit (the third-party package behind MAX_QUERY_DEPTH below)
+// re-expands every FRAGMENT_SPREAD from scratch with no memoization
+// (determineDepth in graphql-depth-limit/index.js) — the same exponential-
+// blowup shape selectionSetHasConnectionShape/countFieldsInSelectionSet were
+// fixed for below, just living in a dependency this file doesn't control.
+// guardedDepthLimit gates the call: reject the document before it ever
+// reaches depthLimit once it contains more than MAX_FRAGMENT_SPREADS total
+// `...FragmentName` occurrences, counted by a single linear pass over the
+// raw, unexpanded document — a count that can't itself blow up, since it
+// never follows a spread to its definition.
+//
+// This caps total spread *occurrences*, not the number of fragment
+// *definitions*: for a fixed total of S spread edges laid out as a chain of
+// fragments each spreading the previous one d times, worst-case expansion
+// is d^(S/d), which is maximized (over all integer choices of d) around
+// d=3 — so a document with few fragments but high per-fragment fan-out is
+// just as dangerous as a long, thin chain with the same S. Measured
+// directly against graphql-depth-limit: ~31-33 total spreads (fanout 2, 3,
+// or 4) took 14-32ms; ~40-41 took 277-471ms. 30 keeps worst-case validation
+// work in the low tens of milliseconds regardless of shape, while still
+// giving generous headroom over today's app code, which uses no fragments
+// at all.
+const MAX_FRAGMENT_SPREADS = 30;
+
+function countFragmentSpreads(documentAST) {
+  let count = 0;
+  visit(documentAST, {
+    FragmentSpread() {
+      count++;
+    },
+  });
+  return count;
+}
+
+function guardedDepthLimit(maxDepth) {
+  const depthLimitRule = depthLimit(maxDepth);
+  return (context) => {
+    const spreadCount = countFragmentSpreads(context.getDocument());
+    if (spreadCount > MAX_FRAGMENT_SPREADS) {
+      context.reportError(
+        new GraphQLError(
+          `Document contains ${spreadCount} fragment spreads, exceeding the maximum of ${MAX_FRAGMENT_SPREADS}.`,
+        ),
+      );
+      return {};
+    }
+    return depthLimitRule(context);
+  };
+}
 
 // Walks every connection selection in the document (at any nesting level,
 // so a facet's relation sub-connection is covered too, not just the root
@@ -48,11 +98,15 @@ const MAX_QUERY_COST = 200;
 // the page-size check. `visitedFragmentNames` guards against fragment
 // cycles — invalid GraphQL that the built-in NoFragmentCyclesRule also
 // rejects, but rule execution order isn't guaranteed, so this rule must not
-// infinitely recurse on a maliciously cyclic document first.
+// infinitely recurse on a maliciously cyclic document first. `memo` caches
+// each fragment definition's own result by name — a fragment's shape is
+// invariant no matter where it's spread — so a chain of fragments each
+// spreading the previous one twice costs O(n) rather than O(2^n).
 function selectionSetHasConnectionShape(
   selections,
   fragmentsByName,
   visitedFragmentNames,
+  memo = new Map(),
 ) {
   if (!selections) return false;
   for (const selection of selections) {
@@ -68,6 +122,7 @@ function selectionSetHasConnectionShape(
           selection.selectionSet && selection.selectionSet.selections,
           fragmentsByName,
           visitedFragmentNames,
+          memo,
         )
       ) {
         return true;
@@ -75,6 +130,10 @@ function selectionSetHasConnectionShape(
     }
     if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragmentName = selection.name.value;
+      if (memo.has(fragmentName)) {
+        if (memo.get(fragmentName)) return true;
+        continue;
+      }
       const fragment = fragmentsByName[fragmentName];
       if (!fragment || visitedFragmentNames.has(fragmentName)) continue;
       visitedFragmentNames.add(fragmentName);
@@ -82,8 +141,10 @@ function selectionSetHasConnectionShape(
         fragment.selectionSet && fragment.selectionSet.selections,
         fragmentsByName,
         visitedFragmentNames,
+        memo,
       );
       visitedFragmentNames.delete(fragmentName);
+      memo.set(fragmentName, found);
       if (found) return true;
     }
   }
@@ -91,18 +152,19 @@ function selectionSetHasConnectionShape(
 }
 
 // Total number of field selections reachable from `selections`, expanding
-// fragment spreads and inline fragments in place (so a fragment spread
-// twice in the same operation counts its fields twice — no memoization by
-// fragment name, since the cost is per occurrence, not per fragment
-// definition). This is the same traversal shape as
-// selectionSetHasConnectionShape, reused here for a different purpose:
-// counting rather than shape-detection. `visitedFragmentNames` is a guard
-// against cycles along the current path only (pushed/popped per branch),
-// not a memo, matching that function's cycle-safety approach.
+// fragment spreads and inline fragments in place. This is the same
+// traversal shape as selectionSetHasConnectionShape, reused here for a
+// different purpose: counting rather than shape-detection.
+// `visitedFragmentNames` is a cycle guard along the current path (pushed/
+// popped per branch); `memo` caches each fragment definition's own field
+// count by name, since that count is invariant no matter where the
+// fragment is spread — without it, a chain of fragments each spreading the
+// previous one twice would force O(2^n) traversal work for n fragments.
 function countFieldsInSelectionSet(
   selections,
   fragmentsByName,
   visitedFragmentNames,
+  memo = new Map(),
 ) {
   if (!selections) return 0;
   let count = 0;
@@ -114,24 +176,33 @@ function countFieldsInSelectionSet(
           selection.selectionSet && selection.selectionSet.selections,
           fragmentsByName,
           visitedFragmentNames,
+          memo,
         );
     } else if (selection.kind === Kind.INLINE_FRAGMENT) {
       count += countFieldsInSelectionSet(
         selection.selectionSet && selection.selectionSet.selections,
         fragmentsByName,
         visitedFragmentNames,
+        memo,
       );
     } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragmentName = selection.name.value;
+      if (memo.has(fragmentName)) {
+        count += memo.get(fragmentName);
+        continue;
+      }
       const fragment = fragmentsByName[fragmentName];
       if (!fragment || visitedFragmentNames.has(fragmentName)) continue;
       visitedFragmentNames.add(fragmentName);
-      count += countFieldsInSelectionSet(
+      const fragmentCount = countFieldsInSelectionSet(
         fragment.selectionSet && fragment.selectionSet.selections,
         fragmentsByName,
         visitedFragmentNames,
+        memo,
       );
       visitedFragmentNames.delete(fragmentName);
+      memo.set(fragmentName, fragmentCount);
+      count += fragmentCount;
     }
   }
   return count;
@@ -291,12 +362,13 @@ module.exports = {
   MAX_QUERY_DEPTH,
   MAX_PAGE_SIZE,
   MAX_QUERY_COST,
+  MAX_FRAGMENT_SPREADS,
   // Static rules (schema + AST only) run on every request, cacheable by
   // PostGraphile's query cache — this is the hook PostGraphile's own docs
   // recommend when a rule doesn't need per-request data.
   "postgraphile:validationRules:static": (rules) => [
     ...rules,
-    depthLimit(MAX_QUERY_DEPTH),
+    guardedDepthLimit(MAX_QUERY_DEPTH),
     maxQueryCostRule(),
   ],
   // Needs the request's actual variables, so it can't be static/cached.
