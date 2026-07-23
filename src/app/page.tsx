@@ -12,7 +12,11 @@ function toSearchParams(raw: RawSearchParams): URLSearchParams {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw)) {
     if (value === undefined) continue;
-    params.set(key, Array.isArray(value) ? value[0] : value);
+    if (Array.isArray(value)) {
+      for (const v of value) params.append(key, v);
+    } else {
+      params.set(key, value);
+    }
   }
   return params;
 }

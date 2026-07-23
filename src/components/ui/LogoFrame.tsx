@@ -12,7 +12,7 @@ export default function LogoFrame({
 }) {
   return (
     <span
-      className="grid flex-none place-items-center border border-line text-ink"
+      className="grid flex-none place-items-center border border-line font-[family-name:var(--font-display)] text-ink"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }}
       aria-hidden="true"
     >

@@ -60,9 +60,9 @@ export function buildToolFilter(
   // Parent-includes-children rollup: `areaSlugs` is the selected area plus
   // all of its descendants, resolved via area_of_use_descendants (schema-spec
   // §4.9) before this function is called.
-  if (state.area && areaSlugs && areaSlugs.length > 0) {
+  if (state.area) {
     and.push({
-      toolAreaOfUses: { some: { areaOfUse: { slug: { in: areaSlugs } } } },
+      toolAreaOfUses: { some: { areaOfUse: { slug: { in: areaSlugs ?? [] } } } },
     });
   }
 
@@ -79,6 +79,6 @@ export function buildToolFilter(
 
 export function buildOrderBy(sort: SortKey): string[] {
   return sort === "popularity"
-    ? ["CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC"]
+    ? ["CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC", "ID_ASC"]
     : ["NAME_ASC"];
 }
