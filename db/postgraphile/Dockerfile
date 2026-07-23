@@ -26,7 +26,12 @@
 #                      the CLI: graphileBuildOptions.connectionFilterRelations
 #                      (needed for the "some"/"every"/"none" relation filters
 #                      the frontend sends for platform/area/language facets)
-#                      has no CLI flag and can only be set this way.
+#                      has no CLI *flag*. A .postgraphilerc.js file can also
+#                      pass it through (the CLI spreads that file's whole
+#                      `options` object into the same call library mode uses),
+#                      but PostGraphile's own docs mark .postgraphilerc.js
+#                      deprecated and slated for removal in v5, so this project
+#                      uses the library API directly instead of relying on it.
 #  ---------------------------------------------------------------------------
 #  NODE VERSION: pinned to 22 (Active/Maintenance LTS) to match ci.yml's
 #  setup-node and Vercel's project Node version. Node 20 reached end-of-life on

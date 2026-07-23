@@ -68,6 +68,14 @@ export default function SearchPageClient({
   const searchParams = useSearchParams();
 
   const filters = useMemo(() => parseFilterState(searchParams), [searchParams]);
+  // Excludes `view`, which only selects RESULTS_VIEWS locally (line ~154)
+  // and isn't read by the BFF — keeping it out of the key stops a
+  // view-only change from refetching and flashing the loading state.
+  const requestParams = useMemo(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("view");
+    return params.toString();
+  }, [searchParams]);
 
   const [data, setData] = useState<ToolsConnection>(initialResults);
   const [loading, setLoading] = useState(false);
@@ -83,7 +91,7 @@ export default function SearchPageClient({
     setLoading(true);
     setError(null);
 
-    fetch(`/api/tools/search?${searchParams.toString()}`)
+    fetch(`/api/tools/search?${requestParams}`)
       .then((res) => {
         if (!res.ok) throw new Error("search failed");
         return res.json() as Promise<ToolsConnection>;
@@ -103,7 +111,7 @@ export default function SearchPageClient({
     return () => {
       cancelled = true;
     };
-  }, [searchParams]);
+  }, [requestParams]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -112,8 +120,7 @@ export default function SearchPageClient({
     }
 
     return runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [runSearch]);
 
   function pushUrl(next: FilterState) {
     const qs = serializeFilterState(next).toString();

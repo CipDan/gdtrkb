@@ -98,16 +98,18 @@ server-to-server, and PostGraphile calls Neon.
    ships the API.
 
 The container runs PostGraphile in library mode (`db/postgraphile/server.js`,
-`node server.js`), not the CLI — needed so
-`graphileBuildOptions.connectionFilterRelations` can be set (schema-spec §6.1;
-the CLI has no flag for it, and the search page's platform/area/language
-facet filters depend on it).
+`node server.js`), not the CLI, so
+`graphileBuildOptions.connectionFilterRelations` can be set (schema-spec §6.1)
+without depending on `.postgraphilerc.js`, which PostGraphile's own docs mark
+deprecated and slated for removal in v5. The CLI's own flags have no
+equivalent for this option, and the search page's platform/area/language
+facet filters depend on it.
 
 Dockerfile hardening the file itself flags as TODO before going public:
 - GraphiQL: DONE — `server.js` defaults it off; it only turns on if
   `ENABLE_GRAPHIQL=true` is set (e.g. for local/dev testing). Leave that
   variable unset in Railway.
-- Add `USER node` to run non-root.
+- Non-root user: DONE — the Dockerfile runs as `USER node`.
 - Startup crash-loop protection: DONE — `server.js` sets `retryOnInitFail: true`,
   so PostGraphile retries the schema build instead of crashing if Neon isn't
   reachable yet at container start (e.g. cold-starting behind Railway).

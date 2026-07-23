@@ -7,8 +7,9 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@graphile-contrib/pg-simplify-inflector": "^6",
+    "graphql-depth-limit": "1.1.0",
     "postgraphile": "^4",
-    "postgraphile-plugin-connection-filter": "^2",
-    "@graphile-contrib/pg-simplify-inflector": "^6"
+    "postgraphile-plugin-connection-filter": "^2"
   }
 }
