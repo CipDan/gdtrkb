@@ -23,7 +23,7 @@ export async function generateMetadata({
   if (!tool) return {};
 
   return {
-    title: `${tool.name} · GDTRKB`,
+    title: `${tool.name} · Game Development Tools & Resources Knowledge Bank`,
     description: tool.summary,
   };
 }
