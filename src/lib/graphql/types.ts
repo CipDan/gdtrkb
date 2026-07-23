@@ -38,7 +38,7 @@ export interface ToolSearchNodeWire {
   logoImageUrl: string | null;
   hasBuiltInEditor: boolean;
   confirmedCommercialTitlesCount: number | null;
-  areasOfUse: { slug: string; name: string }[];
+  toolAreaOfUses: { nodes: { areaOfUse: { slug: string; name: string } }[] };
 }
 
 export interface ToolsConnectionWire {

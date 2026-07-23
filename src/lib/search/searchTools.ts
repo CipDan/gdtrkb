@@ -42,6 +42,7 @@ export async function searchTools(state: FilterState): Promise<ToolsConnection> 
       ...node,
       type: fromGraphqlEnum<ToolType>(node.type),
       licensingModel: fromGraphqlEnum<LicensingModel>(node.licensingModel),
+      areasOfUse: node.toolAreaOfUses.nodes.map((n) => n.areaOfUse),
     })),
   };
 }
