@@ -12,26 +12,34 @@
 #                      Set it in Railway → Variables. Do not commit it.
 #   [2] PORT          — Railway injects $PORT at runtime. The ENV below is only a
 #                      local fallback; do not rely on a fixed port in production.
-#   [3] Package pins  — replace the ^ranges with the exact versions you tested
-#                      (or switch to the package.json + `npm ci` variant, noted
-#                      at the bottom) so production builds are reproducible.
+#   [3] Package pins  — dependencies are pinned by package.json + the committed
+#                      package-lock.json and installed with `npm ci` (below), so
+#                      the WHOLE tree is reproducible, not just the two top-level
+#                      packages. Bump a version by editing package.json and
+#                      regenerating the lockfile (`npm install`), then commit it.
 #   [4] GraphiQL      — served by default (handy while testing). For a public
 #                      production endpoint, add --disable-graphiql (see CMD note).
 #   [5] Schema        — 'public' is assumed; change --schema if you use another.
+#  ---------------------------------------------------------------------------
+#  NODE VERSION: pinned to 22 (Active/Maintenance LTS) to match ci.yml's
+#  setup-node and Vercel's project Node version. Node 20 reached end-of-life on
+#  2026-04-30, so keep all three (CI, frontend, this image) on the same LTS.
 #  ---------------------------------------------------------------------------
 #  NOTE: CORS is intentionally NOT enabled. In this architecture the browser
 #  never calls PostGraphile directly — the Next.js server (BFF) calls it
 #  server-to-server — so no browser CORS is required. Keep it disabled.
 # ============================================================================
 
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 
-# [3] Pin exact versions in production instead of these ranges.
-RUN npm install --omit=dev \
-      postgraphile@^4 \
-      postgraphile-plugin-connection-filter@^2
+# [3] Reproducible install: the full dependency tree is locked by the committed
+# package-lock.json. Copy manifests first so this layer stays cached until a
+# dependency actually changes. `npm ci` fails fast if the lockfile is missing or
+# out of sync with package.json — regenerate it with `npm install` and commit.
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 # [2] Local fallback only — Railway overrides PORT at runtime.
 ENV PORT=5000
@@ -51,10 +59,7 @@ CMD ["sh", "-c", "exec npx postgraphile \
 
 # ── Production hardening notes (optional, recommended) ──────────────────────
 #  • Run as non-root: add `USER node` (and ensure /app is readable by it).
-#  • Reproducible installs: replace the RUN npm install above with a copied
-#    package.json + package-lock.json and `RUN npm ci --omit=dev`, e.g.:
-#        COPY package*.json ./
-#        RUN npm ci --omit=dev
-#    This pins the whole dependency tree, not just the two top-level packages.
+#  • Reproducible installs: DONE — see the `npm ci` step above. Regenerate and
+#    re-commit package-lock.json whenever you change a version in package.json.
 #  • The SELECT-only DB role (in DATABASE_URL) is the primary write guard;
 #    --disable-default-mutations is the second layer. Keep both.

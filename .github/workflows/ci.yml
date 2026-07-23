@@ -9,7 +9,7 @@ on:
       apply_schema:
         description: 'Also apply db/01_schema.sql before reseeding (schema provisioning / change). Expects an empty or reset DB.'
         type: boolean
-        default: true
+        default: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -87,22 +87,6 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/01_schema.sql
-
-      # Re-creates the SELECT-only role's grants (idempotent — see
-      # db/00_grants.sql). Required after a fresh schema apply, since
-      # 01_schema.sql never creates the role itself (ci-deploy-setup.md §2.4).
-      # The role's password is passed as a psql variable (:'pass') rather than
-      # baked into the SQL file, so it can live as a GitHub secret.
-      - name: Create SELECT-only role & grants (manual, opt-in)
-        if: ${{ inputs.apply_schema }}
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
-          GDTRKB_RO_PASSWORD: ${{ secrets.GDTRKB_RO_PASSWORD }}
-        run: |
-          test -n "$GDTRKB_RO_PASSWORD" || { echo "GDTRKB_RO_PASSWORD is empty"; exit 1; }
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-            -v pass="$GDTRKB_RO_PASSWORD" \
-            -f db/00_grants.sql
 
       - name: Reseed catalog
         env:

@@ -1,0 +1,13 @@
+{
+  "name": "gdtrkb-postgraphile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PostGraphile API container for the Game Development Tools Knowledge Bank — read-only GraphQL over Postgres.",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "postgraphile": "^4",
+    "postgraphile-plugin-connection-filter": "^2"
+  }
+}
