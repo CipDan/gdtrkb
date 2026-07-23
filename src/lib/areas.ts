@@ -1,6 +1,21 @@
 import "server-only";
 import { gql } from "graphql-request";
 import { graphqlClient } from "@/lib/graphql/client";
+import type { AreaOfUseOption } from "@/lib/graphql/types";
+
+export interface AreaOfUseTreeNode extends AreaOfUseOption {
+  children: AreaOfUseOption[];
+}
+
+// Groups the flat facet option list into the 2-level tree the filter panel
+// renders (app-spec §7.2). Areas with no parent are top-level domains.
+export function buildAreaOfUseTree(areas: AreaOfUseOption[]): AreaOfUseTreeNode[] {
+  const parents = areas.filter((area) => area.parentSlug === null);
+  return parents.map((parent) => ({
+    ...parent,
+    children: areas.filter((area) => area.parentSlug === parent.slug),
+  }));
+}
 
 // Resolves a selected area-of-use slug to itself + all descendants, so
 // selecting a parent rolls up its children (docs/app-spec.md §7.2,

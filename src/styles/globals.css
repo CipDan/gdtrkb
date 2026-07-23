@@ -47,6 +47,10 @@
   }
 }
 
+.wordmark-cursor {
+  animation: cursor-blink 1.1s steps(1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wordmark-cursor {
     animation: none;

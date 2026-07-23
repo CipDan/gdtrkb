@@ -39,7 +39,7 @@ export interface Tool {
   licensingNote: string | null;
   logoImageUrl: string | null;
   logoImageSource: string | null;
-  confirmedCommercialTitlesCount: number;
+  confirmedCommercialTitlesCount: number | null;
   confirmedTitlesAsOf: string | null;
   confirmedTitlesSource: string | null;
 }

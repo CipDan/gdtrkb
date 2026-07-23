@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { ToolsConnection } from "@/lib/graphql/types";
+import { parseFilterState } from "@/lib/search/filterState";
+import { searchTools } from "@/lib/search/searchTools";
 
+// The only request-time API path in the MVP (app-spec §5 item 2). The
+// browser calls this route; this route (server-side) is the only thing that
+// talks to PostGraphile for live search.
 export async function GET(request: NextRequest) {
-  void request;
+  const filterState = parseFilterState(request.nextUrl.searchParams);
 
-  const empty: ToolsConnection = {
-    nodes: [],
-    pageInfo: { hasNextPage: false, endCursor: null },
-    totalCount: 0,
-  };
-
-  return NextResponse.json(empty);
+  try {
+    const results = await searchTools(filterState);
+    return NextResponse.json(results);
+  } catch {
+    return NextResponse.json(
+      { error: "Search is temporarily unavailable." },
+      { status: 502 },
+    );
+  }
 }

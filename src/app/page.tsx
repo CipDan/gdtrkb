@@ -1,13 +1,56 @@
-export default function SearchPage() {
+import SearchPageClient from "@/components/search/SearchPageClient";
+import PopularityChart from "@/components/chart/PopularityChart";
+import { parseFilterState } from "@/lib/search/filterState";
+import { searchTools } from "@/lib/search/searchTools";
+import { getFacetOptions } from "@/lib/graphql/facets";
+import { getPopularityChartData } from "@/lib/graphql/popularity";
+import { buildAreaOfUseTree } from "@/lib/areas";
+
+type RawSearchParams = { [key: string]: string | string[] | undefined };
+
+function toSearchParams(raw: RawSearchParams): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === undefined) continue;
+    params.set(key, Array.isArray(value) ? value[0] : value);
+  }
+  return params;
+}
+
+// Search page (app-spec §6/§7): default route, shows the full catalog
+// paginated in the card grid, sorted by name, when there's no query/facets.
+// Data-fetching (results + facet options + popularity chart) runs
+// server-side; failures propagate to app/error.tsx per §7.9.
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawSearchParams>;
+}) {
+  const filterState = parseFilterState(toSearchParams(await searchParams));
+
+  const [results, facets, popularity] = await Promise.all([
+    searchTools(filterState),
+    getFacetOptions(),
+    getPopularityChartData(),
+  ]);
+
+  const areaTree = buildAreaOfUseTree(facets.areas);
+
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-24 text-center">
-      <h1 className="font-[family-name:var(--font-display)] text-5xl text-bright">
-        GDTRKB
+    <div>
+      <h1 className="mb-4 text-[16px] font-normal text-dim">
+        Game Development Tools &amp; Resources Knowledge Bank
       </h1>
-      <p className="max-w-xl text-dim">
-        Game Development Tools &amp; Resources Knowledge Bank — search, facets,
-        and results view switch land here (see docs/app-spec.md §7).
-      </p>
-    </main>
+
+      <SearchPageClient
+        initialFilterState={filterState}
+        initialResults={results}
+        areaTree={areaTree}
+        platforms={facets.platforms}
+        languages={facets.languages}
+      />
+
+      <PopularityChart data={popularity} />
+    </div>
   );
 }
