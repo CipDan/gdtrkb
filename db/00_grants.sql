@@ -41,3 +41,15 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO gdtrkb_ro;
 -- will keep creating tables — so this doesn't need an explicit role name.
 ALTER DEFAULT PRIVILEGES FOR ROLE CURRENT_USER IN SCHEMA public
   GRANT SELECT ON TABLES TO gdtrkb_ro;
+
+-- Bounds worst-case query runtime at the database level — a backstop
+-- independent of the GraphQL-layer guardrails in
+-- db/postgraphile/guardrails.js (depth/page-size/field-count limits), for
+-- any query shape those miss (e.g. deeply nested connections that multiply
+-- row counts across levels rather than exceeding any single limit). 10s is
+-- well above every real query this app sends today — the frontend's own
+-- GraphQL client already gives up after 5s (src/lib/graphql/client.ts) — so
+-- this should never fire for legitimate traffic. Role-level setting, so it
+-- applies to every new connection PostGraphile opens as gdtrkb_ro; re-running
+-- this line is a no-op if already set, same as the grants above.
+ALTER ROLE gdtrkb_ro SET statement_timeout = '10s';

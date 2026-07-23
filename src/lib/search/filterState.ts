@@ -1,4 +1,8 @@
 import type { LicensingModel, PlatformRole, ToolType } from "@/types";
+import {
+  LICENSING_OPTIONS,
+  TOOL_TYPE_OPTIONS,
+} from "@/lib/search/staticFacetOptions";
 
 // All search/filter/sort/page/view state lives in the URL (docs/app-spec.md §7.4).
 export type SortKey = "name" | "popularity";
@@ -36,15 +40,29 @@ export const DEFAULT_FILTER_STATE: FilterState = {
   cursorHistory: [],
 };
 
+const TOOL_TYPES = TOOL_TYPE_OPTIONS.map((o) => o.value);
+const LICENSING_MODELS = LICENSING_OPTIONS.map((o) => o.value);
+
+// Rejects unrecognized values instead of letting them through as an unsafe
+// cast, which would otherwise reach GraphQL as an invalid enum (502).
+function parseEnum<T extends string>(
+  value: string | null,
+  allowed: readonly T[],
+): T | null {
+  return (allowed as readonly string[]).includes(value ?? "")
+    ? (value as T)
+    : null;
+}
+
 export function parseFilterState(params: URLSearchParams): FilterState {
   return {
     q: params.get("q") ?? DEFAULT_FILTER_STATE.q,
-    type: (params.get("type") as ToolType | null) ?? null,
+    type: parseEnum(params.get("type"), TOOL_TYPES),
     area: params.get("area"),
     hostOs: params.get("hostOs"),
     target: params.get("target"),
     language: params.get("language"),
-    licensing: (params.get("licensing") as LicensingModel | null) ?? null,
+    licensing: parseEnum(params.get("licensing"), LICENSING_MODELS),
     hasBuiltInEditor: params.has("hasBuiltInEditor")
       ? params.get("hasBuiltInEditor") === "true"
       : null,

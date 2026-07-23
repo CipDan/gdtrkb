@@ -6,6 +6,9 @@
   "engines": {
     "node": ">=22"
   },
+  "scripts": {
+    "test": "node guardrails.test.js"
+  },
   "dependencies": {
     "@graphile-contrib/pg-simplify-inflector": "^6",
     "graphql-depth-limit": "1.1.0",

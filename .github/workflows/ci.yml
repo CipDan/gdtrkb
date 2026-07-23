@@ -7,7 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       apply_schema:
-        description: 'Also apply db/01_schema.sql before reseeding (schema provisioning / change). Expects an empty or reset DB.'
+        description: 'Also apply db/01_schema.sql before reseeding (schema provisioning / change). Expects an empty or reset DB. Implies apply_grants.'
+        type: boolean
+        default: false
+      apply_grants:
+        description: 'Also (re-)apply db/00_grants.sql on its own (idempotent — safe to run against a live, populated DB; never rotates the role password). Use this instead of apply_schema when only db/00_grants.sql changed.'
         type: boolean
         default: false
 
@@ -91,10 +95,13 @@ jobs:
       # Re-creates the SELECT-only role's grants (idempotent — see
       # db/00_grants.sql). Required after a fresh schema apply, since
       # 01_schema.sql never creates the role itself (ci-deploy-setup.md §2.4).
-      # The role's password is passed as a psql variable (:'pass') rather than
-      # baked into the SQL file, so it can live as a GitHub secret.
+      # Also runnable on its own (apply_grants) for a grants-only change (e.g.
+      # a new ALTER ROLE ... SET) without touching 01_schema.sql, which isn't
+      # safe to re-run against a live, populated DB. The role's password is
+      # passed as a psql variable (:'pass') rather than baked into the SQL
+      # file, so it can live as a GitHub secret.
       - name: Create SELECT-only role & grants (manual, opt-in)
-        if: ${{ inputs.apply_schema }}
+        if: ${{ inputs.apply_schema || inputs.apply_grants }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATIONS }}
           GDTRKB_RO_PASSWORD: ${{ secrets.GDTRKB_RO_PASSWORD }}
