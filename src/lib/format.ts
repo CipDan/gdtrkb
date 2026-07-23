@@ -1,4 +1,4 @@
-import type { LicensingModel, ToolType } from "@/types";
+import type { LicensingModel, ToolLinkType, ToolType } from "@/types";
 import { LICENSING_OPTIONS, TOOL_TYPE_OPTIONS } from "@/lib/search/staticFacetOptions";
 
 // Short bracketed licensing tags per docs/design/design-tokens-3-phosphor.md
@@ -22,6 +22,20 @@ export function licensingLongLabel(model: LicensingModel): string {
 
 export function toolTypeLabel(type: ToolType): string {
   return TOOL_TYPE_OPTIONS.find((option) => option.value === type)?.label ?? type;
+}
+
+// Structured link type labels (schema-spec.md §3 tool_link_type), used by
+// the detail page's spec sheet (app-spec §8 item 3 / phosphor-hifi-mock.html
+// .spec dl "links" row).
+const TOOL_LINK_TYPE_LABELS: Record<ToolLinkType, string> = {
+  WEBSITE: "website",
+  DOCS: "docs",
+  SOURCE_REPO: "source repo",
+  COMMUNITY: "community",
+};
+
+export function toolLinkTypeLabel(type: ToolLinkType): string {
+  return TOOL_LINK_TYPE_LABELS[type];
 }
 
 export function logoInitials(name: string): string {

@@ -95,3 +95,137 @@ export const TOOL_TOTAL_COUNT_QUERY = gql`
     }
   }
 `;
+
+// All tool slugs — feeds generateStaticParams for /tools/[slug] (app-spec §5
+// item 1). `first: 100` is the same guardrail-cap convention as
+// FACET_OPTIONS_QUERY; the catalog is a few dozen rows.
+export const TOOL_SLUGS_QUERY = gql`
+  query ToolSlugs {
+    tools(first: 100) {
+      nodes {
+        slug
+      }
+    }
+  }
+`;
+
+// Detail page (app-spec §8, schema-spec §5.2a). Relationship edges are
+// fetched in both directions — `toolRelationshipBidirectionalsBySourceToolId`
+// alone (as schema-spec §5.2f's example filters) misses directional edges
+// where this tool is the target (e.g. "Blender EXPORTS_TO Unity" doesn't
+// show up on Unity's page from the source-only query) — only the mirrored
+// PAIRS_WELL_WITH rows are guaranteed to appear from either side. The two
+// connections are merged and deduped by relationshipId in lib/graphql/tool.ts.
+export const TOOL_BY_SLUG_QUERY = gql`
+  query ToolBySlug($slug: String!) {
+    toolBySlug(slug: $slug) {
+      slug
+      name
+      type
+      summary
+      hasBuiltInEditor
+      licensingModel
+      licensingNote
+      logoImageUrl
+      logoImageSource
+      confirmedCommercialTitlesCount
+      confirmedTitlesAsOf
+      confirmedTitlesSource
+      toolLinks(first: 20) {
+        nodes {
+          type
+          url
+          label
+        }
+      }
+      toolAreaOfUses(first: 20) {
+        nodes {
+          areaOfUse {
+            slug
+            name
+            parent {
+              slug
+              name
+            }
+          }
+        }
+      }
+      toolPlatforms(first: 30) {
+        nodes {
+          role
+          platform {
+            slug
+            name
+          }
+        }
+      }
+      toolLanguages(first: 20) {
+        nodes {
+          language {
+            slug
+            name
+          }
+        }
+      }
+      toolGames(first: 10) {
+        nodes {
+          game {
+            slug
+            name
+            developer
+            publisher
+            releaseYear
+            bannerImageUrl
+            bannerImageSource
+            gameStoreLinks(first: 10) {
+              nodes {
+                storeLabel
+                url
+              }
+            }
+          }
+        }
+      }
+      outEdges: toolRelationshipBidirectionalsBySourceToolId(first: 30) {
+        nodes {
+          relationshipId
+          type
+          note
+          mirrored
+          sourceTool {
+            slug
+            name
+            type
+            logoImageUrl
+          }
+          targetTool {
+            slug
+            name
+            type
+            logoImageUrl
+          }
+        }
+      }
+      inEdges: toolRelationshipBidirectionalsByTargetToolId(first: 30) {
+        nodes {
+          relationshipId
+          type
+          note
+          mirrored
+          sourceTool {
+            slug
+            name
+            type
+            logoImageUrl
+          }
+          targetTool {
+            slug
+            name
+            type
+            logoImageUrl
+          }
+        }
+      }
+    }
+  }
+`;
