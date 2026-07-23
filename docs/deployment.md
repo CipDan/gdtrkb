@@ -20,7 +20,7 @@ All four capabilities come from the **API engine**, not the platform you host it
 
 | Requirement | How PostGraphile delivers it |
 |---|---|
-| **Filtering** | `postgraphile-plugin-connection-filter` — filter by `type`, `licensingModel`, `hasBuiltInEditor`, or related area/platform/language. |
+| **Filtering** | `postgraphile-plugin-connection-filter` — filter by `type`, `licensingModel`, `hasBuiltInEditor`, or related area/platform/language (the last three need `connectionFilterRelations: true`, which this project sets by running PostGraphile in library mode rather than its CLI — see schema-spec §6.1 for why (a `.postgraphilerc.js` route exists but is deprecated); applies regardless of which pattern below you pick). |
 | **Ordering** | `orderBy` on columns, e.g. `CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC` or `NAME_ASC`. |
 | **Pagination** | Relay cursor connections (`first` / `after`) or classic offset — never all rows at once. |
 | **Search** | Postgres `ilike` predicates via the filter plugin, or full-text search exposed as a computed field/function. |

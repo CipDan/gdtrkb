@@ -22,7 +22,7 @@ export function buildAreaOfUseTree(areas: AreaOfUseOption[]): AreaOfUseTreeNode[
 // docs/schema-spec.md §4.9's area_of_use_descendants(root_slug) function).
 const AREA_DESCENDANTS_QUERY = gql`
   query AreaOfUseDescendants($rootSlug: String!) {
-    areaOfUseDescendants(rootSlug: $rootSlug) {
+    areaOfUseDescendants(rootSlug: $rootSlug, first: 100) {
       nodes {
         slug
       }

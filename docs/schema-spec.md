@@ -838,7 +838,7 @@ type Game {
 
 - **Read-only surface.** Start PostGraphile with default mutations disabled (`--disable-default-mutations` / `disableDefaultMutations: true`). Optionally run under a Postgres role with `SELECT`-only grants for defense in depth.
 - **Seeding.** Populate via idempotent SQL seed scripts or a small admin script that upserts on `slug`. Keep reference tables (`platform`, `language`, `area_of_use`) seeded first, then `tool`, then join/edge rows, then `game` + `tool_game`.
-- **Filtering.** Enable `postgraphile-plugin-connection-filter` for the relation/field filters shown above. Enable the standard `orderBy` and connection pagination.
+- **Filtering.** Enable `postgraphile-plugin-connection-filter` for the relation/field filters shown above. Enable the standard `orderBy` and connection pagination. **Relation filters** (the `some`/`every`/`none` shape in query (c) above, e.g. `toolPlatforms: { some: { platform: { slug: … } } }`) need the plugin's `connectionFilterRelations` build option set to `true` — it defaults to `false`, and there is no CLI *flag* for it, so this project sets it running PostGraphile in library mode (§6.1); see the limitation note there for why a `.postgraphilerc.js` file isn't used instead.
 - **Naming.** Use PostGraphile smart comments/inflectors to shorten auto-generated field names (e.g. `toolPlatformsByToolId` → `platforms`) if you want the tidy SDL in §5.
 - **Hierarchy queries.** `parent`/`children` come from the self FK. For "all tools under X including descendants," either rely on the shallow (2-level) structure and query one level of children, or add a recursive CTE exposed as a function if depth grows.
 - **Timestamps.** `updated_at` can be maintained by a simple `BEFORE UPDATE` trigger if desired.
@@ -848,7 +848,7 @@ type Game {
 
 ### 6.1 Running PostGraphile (Core)
 
-**CLI (quickest):**
+**CLI (quickest — exploration only):**
 
 ```bash
 npm install -g postgraphile postgraphile-plugin-connection-filter
@@ -865,28 +865,35 @@ postgraphile \
 
 `--disable-default-mutations` gives the queries-only surface; `--append-plugins …connection-filter` enables the `filter:` arguments used in §5.2; `--watch` live-reloads the GraphQL schema when the database schema changes; GraphiQL is served at `/graphiql`.
 
-**Library mode (Node/Express)** — for when you want to pin config in code:
+> **Limitation:** the CLI has no *flag* for the connection-filter plugin's `connectionFilterRelations` build option, so a bare `postgraphile ...` invocation can't express it — every non-relation query in §5.2 works fine, but that one filter shape needs more than CLI flags. A `.postgraphilerc.js` file *can* actually pass it through: the CLI spreads that file's whole `options` object into the same call the library API uses, so a key like `graphileBuildOptions` reaches PostGraphile even though it isn't in the CLI's documented flag/rc-key list. PostGraphile's own docs mark `.postgraphilerc.js` as a deprecated interface slated for removal in v5, though, so this project skips it and uses library mode directly instead.
+
+**Library mode (Node, plain `http`)** — the supported (non-deprecated) way to enable relation filters, and what this project actually runs (`db/postgraphile/server.js`, wired into `db/postgraphile/Dockerfile`):
 
 ```js
-const express = require("express");
+const http = require("http");
 const { postgraphile } = require("postgraphile");
 const ConnectionFilterPlugin = require("postgraphile-plugin-connection-filter");
+const SimplifyInflectorPlugin = require("@graphile-contrib/pg-simplify-inflector");
 
-const app = express();
-app.use(
-  postgraphile(process.env.DATABASE_URL, "public", {
-    appendPlugins: [ConnectionFilterPlugin],
-    disableDefaultMutations: true,   // read-only public surface
-    graphiql: true,
-    enhanceGraphiql: true,
-    watchPg: true,
-    dynamicJson: true,
-  })
-);
-app.listen(5000);
+const middleware = postgraphile(process.env.DATABASE_URL, "public", {
+  appendPlugins: [ConnectionFilterPlugin, SimplifyInflectorPlugin],
+  disableDefaultMutations: true,   // read-only public surface
+  graphiql: process.env.ENABLE_GRAPHIQL === "true",   // off by default; opt in for local/dev
+  graphileBuildOptions: {
+    connectionFilterRelations: true, // enables the some/every/none relation filters
+  },
+});
+
+http.createServer(middleware).listen(5000);
 ```
 
-> Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies; not needed for a private read-only catalog.
+`postgraphile(...)`'s return value is a plain Node request handler, so no Express/Connect layer is needed. `graphileBuildOptions.connectionFilterRelations: true` is the one option this project's search page depends on that the CLI's own flags cannot express (see the limitation note above for why this project uses library mode over the deprecated `.postgraphilerc.js` route).
+
+> Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies. This project runs custom middleware instead (`db/postgraphile/guardrails.js`, wired into `server.js` via `pluginHook: makePluginHook([guardrails])`), enforcing two limits on the public endpoint:
+> - **Query depth ≤ `MAX_QUERY_DEPTH` (10)**, via `graphql-depth-limit`, registered as a static validation rule (`postgraphile:validationRules:static`).
+> - **Page size**, via a custom validation rule (`postgraphile:validationRules`) that walks every connection selection (`{ nodes { ... } }` / `{ edges { ... } }`) in the document, at any nesting level, and rejects it unless it carries a `first`/`last` argument that resolves (literal or variable) to a finite number no greater than `MAX_PAGE_SIZE` (100). A connection with no `first`/`last` at all is rejected too, since that falls through to PostGraphile's default of returning every row — the same unbounded-response risk as an oversized `first`.
+>
+> Both values give ~10x headroom over what the app itself sends today (deepest query is depth 5; largest `first` is `PAGE_SIZE`/`CHART_SIZE` at 10) while still rejecting the deeply-nested or huge-page-size requests a public, unauthenticated GraphQL endpoint is otherwise wide open to.
 
 ---
 

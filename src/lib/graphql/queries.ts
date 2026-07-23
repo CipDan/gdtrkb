@@ -19,7 +19,7 @@ export const TOOLS_SEARCH_QUERY = gql`
         logoImageUrl
         hasBuiltInEditor
         confirmedCommercialTitlesCount
-        toolAreaOfUses {
+        toolAreaOfUses(first: 20) {
           nodes {
             areaOfUse {
               slug
@@ -37,22 +37,24 @@ export const TOOLS_SEARCH_QUERY = gql`
   }
 `;
 
-// Facet reference data — app-spec §5 item 3, schema-spec §5.1 collection queries.
+// Facet reference data — app-spec §5 item 3, schema-spec §5.1 collection
+// queries. `first: 100` is a guardrail cap (db/postgraphile/guardrails.js),
+// not a real limit — these reference tables hold a few dozen rows each.
 export const FACET_OPTIONS_QUERY = gql`
   query FacetOptions {
-    platforms {
+    platforms(first: 100) {
       nodes {
         slug
         name
       }
     }
-    languages {
+    languages(first: 100) {
       nodes {
         slug
         name
       }
     }
-    areaOfUses {
+    areaOfUses(first: 100) {
       nodes {
         slug
         name

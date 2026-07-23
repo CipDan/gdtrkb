@@ -80,5 +80,5 @@ export function buildToolFilter(
 export function buildOrderBy(sort: SortKey): string[] {
   return sort === "popularity"
     ? ["CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC", "ID_ASC"]
-    : ["NAME_ASC"];
+    : ["NAME_ASC", "ID_ASC"];
 }

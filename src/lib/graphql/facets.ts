@@ -12,21 +12,27 @@ interface FacetOptionsWire {
 
 // Reference data changes rarely (app-spec §5 item 3); memoize per-request so
 // the search page and the search route handler don't both pay for it.
+// Never throws — the search page must still render (degrading to empty
+// filters) when the API is cold-starting or unreachable (app-spec §7.9).
 export const getFacetOptions = cache(async (): Promise<FacetOptions> => {
-  const result = await withTimeout(
-    graphqlClient.request<FacetOptionsWire>({
-      document: FACET_OPTIONS_QUERY,
-      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
-    }),
-  );
+  try {
+    const result = await withTimeout(
+      graphqlClient.request<FacetOptionsWire>({
+        document: FACET_OPTIONS_QUERY,
+        signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+      }),
+    );
 
-  return {
-    platforms: result.platforms.nodes,
-    languages: result.languages.nodes,
-    areas: result.areaOfUses.nodes.map((node) => ({
-      slug: node.slug,
-      name: node.name,
-      parentSlug: node.parent?.slug ?? null,
-    })),
-  };
+    return {
+      platforms: result.platforms.nodes,
+      languages: result.languages.nodes,
+      areas: result.areaOfUses.nodes.map((node) => ({
+        slug: node.slug,
+        name: node.name,
+        parentSlug: node.parent?.slug ?? null,
+      })),
+    };
+  } catch {
+    return { platforms: [], languages: [], areas: [] };
+  }
 });

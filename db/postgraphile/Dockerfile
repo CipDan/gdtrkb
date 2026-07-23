@@ -17,9 +17,21 @@
 #                      the WHOLE tree is reproducible, not just the two top-level
 #                      packages. Bump a version by editing package.json and
 #                      regenerating the lockfile (`npm install`), then commit it.
-#   [4] GraphiQL      — served by default (handy while testing). For a public
-#                      production endpoint, add --disable-graphiql (see CMD note).
-#   [5] Schema        — 'public' is assumed; change --schema if you use another.
+#   [4] GraphiQL      — off by default (server.js). Set env var
+#                      ENABLE_GRAPHIQL=true to turn it on for local/dev testing;
+#                      leave unset in Railway → Variables for production.
+#   [5] Schema        — 'public' is assumed; change the schema argument in
+#                      server.js if you use another.
+#   [6] Library mode  — runs PostGraphile via its library API (server.js), not
+#                      the CLI: graphileBuildOptions.connectionFilterRelations
+#                      (needed for the "some"/"every"/"none" relation filters
+#                      the frontend sends for platform/area/language facets)
+#                      has no CLI *flag*. A .postgraphilerc.js file can also
+#                      pass it through (the CLI spreads that file's whole
+#                      `options` object into the same call library mode uses),
+#                      but PostGraphile's own docs mark .postgraphilerc.js
+#                      deprecated and slated for removal in v5, so this project
+#                      uses the library API directly instead of relying on it.
 #  ---------------------------------------------------------------------------
 #  NODE VERSION: pinned to 22 (Active/Maintenance LTS) to match ci.yml's
 #  setup-node and Vercel's project Node version. Node 20 reached end-of-life on
@@ -41,25 +53,25 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
+COPY server.js guardrails.js ./
 # [2] Local fallback only — Railway overrides PORT at runtime.
 ENV PORT=5000
 EXPOSE 5000
 
-# DATABASE_URL and PORT are read from the environment at runtime (never baked in).
-# [4] Production hardening: append  --disable-graphiql  to the flags below.
-#     Resilience (optional): append  --retry-on-init-fail  so the container
-#     survives the DB not being ready at the exact moment it boots.
-CMD ["sh", "-c", "exec npx postgraphile \
-  --connection \"$DATABASE_URL\" \
-  --schema public \
-  --host 0.0.0.0 \
-  --port \"$PORT\" \
-  --disable-default-mutations \
-  --append-plugins postgraphile-plugin-connection-filter,@graphile-contrib/pg-simplify-inflector"]
+# Run as the unprivileged `node` user baked into node:22-slim (uid/gid 1000).
+# server.js only reads /app (no runtime writes), so the default world-readable
+# permissions from the COPY/npm ci steps above are sufficient — no chown needed.
+USER node
+
+# [6] DATABASE_URL and PORT are read from the environment at runtime (never
+# baked in) by server.js, which also carries disableDefaultMutations and the
+# same plugins the old CLI invocation used.
+CMD ["node", "server.js"]
 
 # ── Production hardening notes (optional, recommended) ──────────────────────
-#  • Run as non-root: add `USER node` (and ensure /app is readable by it).
+#  • Run as non-root: DONE — see `USER node` above.
 #  • Reproducible installs: DONE — see the `npm ci` step above. Regenerate and
 #    re-commit package-lock.json whenever you change a version in package.json.
 #  • The SELECT-only DB role (in DATABASE_URL) is the primary write guard;
-#    --disable-default-mutations is the second layer. Keep both.
+#    disableDefaultMutations (server.js) is the second layer. Keep both.
+#  • GraphiQL: DONE — off unless ENABLE_GRAPHIQL=true is set (see note [4]).

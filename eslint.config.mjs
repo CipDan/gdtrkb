@@ -13,6 +13,15 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // db/postgraphile is a separate deployable (its own package.json, plain
+    // CommonJS Node script for the PostGraphile container). Still linted, but
+    // its require() calls aren't the ESM/TS import style this rule targets.
+    files: ["db/postgraphile/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
