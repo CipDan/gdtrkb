@@ -1,5 +1,5 @@
 import "server-only";
-import { graphqlClient } from "@/lib/graphql/client";
+import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
 import { TOOLS_SEARCH_QUERY } from "@/lib/graphql/queries";
 import type { ToolsConnection, ToolsConnectionWire } from "@/lib/graphql/types";
 import { fromGraphqlEnum } from "@/lib/graphql/enumCasing";
@@ -23,12 +23,18 @@ export async function searchTools(state: FilterState): Promise<ToolsConnection> 
   const filter = buildToolFilter(state, areaSlugs);
   const orderBy = buildOrderBy(state.sort);
 
-  const result = await graphqlClient.request<ToolsSearchWire>(TOOLS_SEARCH_QUERY, {
-    filter,
-    orderBy,
-    first: PAGE_SIZE,
-    after: state.cursor,
-  });
+  const result = await withTimeout(
+    graphqlClient.request<ToolsSearchWire>({
+      document: TOOLS_SEARCH_QUERY,
+      variables: {
+        filter,
+        orderBy,
+        first: PAGE_SIZE,
+        after: state.cursor,
+      },
+      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+    }),
+  );
 
   return {
     ...result.tools,

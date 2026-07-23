@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { graphqlClient } from "@/lib/graphql/client";
+import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
 import { FACET_OPTIONS_QUERY } from "@/lib/graphql/queries";
 import type { FacetOptions } from "@/lib/graphql/types";
 
@@ -13,7 +13,12 @@ interface FacetOptionsWire {
 // Reference data changes rarely (app-spec §5 item 3); memoize per-request so
 // the search page and the search route handler don't both pay for it.
 export const getFacetOptions = cache(async (): Promise<FacetOptions> => {
-  const result = await graphqlClient.request<FacetOptionsWire>(FACET_OPTIONS_QUERY);
+  const result = await withTimeout(
+    graphqlClient.request<FacetOptionsWire>({
+      document: FACET_OPTIONS_QUERY,
+      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+    }),
+  );
 
   return {
     platforms: result.platforms.nodes,

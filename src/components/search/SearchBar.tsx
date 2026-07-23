@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DEBOUNCE_MS = 300;
 
@@ -23,6 +23,14 @@ export default function SearchBar({
     setText(value);
   }
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cancel any pending debounced submit when `value` changes externally
+  // (e.g. clear filters) or on unmount, so a stale onSubmit can't fire later.
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [value]);
 
   function scheduleSubmit(next: string) {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

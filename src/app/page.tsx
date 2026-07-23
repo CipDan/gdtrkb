@@ -43,7 +43,6 @@ export default async function SearchPage({
       </h1>
 
       <SearchPageClient
-        initialFilterState={filterState}
         initialResults={results}
         areaTree={areaTree}
         platforms={facets.platforms}

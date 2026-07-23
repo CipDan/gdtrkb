@@ -16,15 +16,10 @@ import type { ToolsConnection } from "@/lib/graphql/types";
 import type { AreaOfUseTreeNode } from "@/lib/areas";
 
 interface SearchPageClientProps {
-  initialFilterState: FilterState;
   initialResults: ToolsConnection;
   areaTree: AreaOfUseTreeNode[];
   platforms: { slug: string; name: string }[];
   languages: { slug: string; name: string }[];
-}
-
-function nonCursorKey(state: FilterState): string {
-  return JSON.stringify({ ...state, cursor: undefined });
 }
 
 function describeActiveFilters(
@@ -58,7 +53,6 @@ function describeActiveFilters(
 // truth for filter/sort/page/view state (app-spec §7.4, mandatory); this
 // component only mirrors it into fetches against the BFF route.
 export default function SearchPageClient({
-  initialFilterState,
   initialResults,
   areaTree,
   platforms,
@@ -73,10 +67,11 @@ export default function SearchPageClient({
   const [data, setData] = useState<ToolsConnection>(initialResults);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([]);
+  // Cursor stack lives in the URL (see filters.cursorHistory), not local
+  // state, so a reload or shared link on page 2+ still supports "prev".
+  const cursorHistory = filters.cursorHistory;
 
   const isFirstRender = useRef(true);
-  const filtersKeyRef = useRef(nonCursorKey(initialFilterState));
 
   const runSearch = useCallback(() => {
     let cancelled = false;
@@ -111,12 +106,6 @@ export default function SearchPageClient({
       return;
     }
 
-    const key = nonCursorKey(filters);
-    if (key !== filtersKeyRef.current) {
-      filtersKeyRef.current = key;
-      setCursorHistory([]);
-    }
-
     return runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -127,7 +116,7 @@ export default function SearchPageClient({
   }
 
   function applyFilters(patch: Partial<FilterState>) {
-    pushUrl({ ...filters, ...patch, cursor: null });
+    pushUrl({ ...filters, ...patch, cursor: null, cursorHistory: [] });
   }
 
   function handleViewChange(view: ViewMode) {
@@ -135,21 +124,26 @@ export default function SearchPageClient({
   }
 
   function handleClear() {
-    setCursorHistory([]);
     router.replace(pathname, { scroll: false });
   }
 
   function handleNext() {
     if (!data.pageInfo.hasNextPage || !data.pageInfo.endCursor) return;
-    setCursorHistory((prev) => [...prev, filters.cursor]);
-    pushUrl({ ...filters, cursor: data.pageInfo.endCursor });
+    pushUrl({
+      ...filters,
+      cursor: data.pageInfo.endCursor,
+      cursorHistory: [...cursorHistory, filters.cursor],
+    });
   }
 
   function handlePrev() {
     if (cursorHistory.length === 0) return;
     const target = cursorHistory[cursorHistory.length - 1];
-    setCursorHistory((prev) => prev.slice(0, -1));
-    pushUrl({ ...filters, cursor: target });
+    pushUrl({
+      ...filters,
+      cursor: target,
+      cursorHistory: cursorHistory.slice(0, -1),
+    });
   }
 
   const activeView = RESULTS_VIEWS.find((v) => v.mode === filters.view) ?? RESULTS_VIEWS[0];

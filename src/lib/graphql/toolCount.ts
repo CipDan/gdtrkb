@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { graphqlClient } from "@/lib/graphql/client";
+import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
 import { TOOL_TOTAL_COUNT_QUERY } from "@/lib/graphql/queries";
 
 interface ToolTotalCountWire {
@@ -12,8 +12,11 @@ interface ToolTotalCountWire {
 // reachable) when the API is cold-starting or unreachable.
 export const getToolCount = cache(async (): Promise<number | null> => {
   try {
-    const result = await graphqlClient.request<ToolTotalCountWire>(
-      TOOL_TOTAL_COUNT_QUERY,
+    const result = await withTimeout(
+      graphqlClient.request<ToolTotalCountWire>({
+        document: TOOL_TOTAL_COUNT_QUERY,
+        signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+      }),
     );
     return result.tools.totalCount;
   } catch {

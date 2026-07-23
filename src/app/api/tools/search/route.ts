@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   try {
     const results = await searchTools(filterState);
     return NextResponse.json(results);
-  } catch {
+  } catch (error) {
+    console.error("Tool search failed:", error);
     return NextResponse.json(
       { error: "Search is temporarily unavailable." },
       { status: 502 },

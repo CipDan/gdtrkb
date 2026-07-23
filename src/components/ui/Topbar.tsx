@@ -10,8 +10,8 @@ export default function Topbar({ toolCount }: { toolCount: number | null }) {
       <Wordmark />
       <span className="ml-auto text-[16px] text-dim">
         {toolCount !== null
-          ? `gamedev tools index · ${toolCount} entries`
-          : "gamedev tools index"}
+          ? `${toolCount} ${toolCount === 1 ? "entry" : "entries"}`
+          : null}
       </span>
     </header>
   );

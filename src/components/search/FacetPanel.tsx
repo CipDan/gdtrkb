@@ -85,7 +85,9 @@ export default function FacetPanel({
                 radio
                 checked={filters.type === opt.value}
                 label={opt.label}
-                onClick={() => onChange({ type: opt.value })}
+                onClick={() =>
+                  onChange({ type: filters.type === opt.value ? null : opt.value })
+                }
               />
             ))}
           </div>
