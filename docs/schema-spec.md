@@ -889,7 +889,11 @@ http.createServer(middleware).listen(5000);
 
 `postgraphile(...)`'s return value is a plain Node request handler, so no Express/Connect layer is needed. `graphileBuildOptions.connectionFilterRelations: true` is the one option this project's search page depends on that the CLI's own flags cannot express (see the limitation note above for why this project uses library mode over the deprecated `.postgraphilerc.js` route).
 
-> Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies; not needed for a private read-only catalog.
+> Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies. This project runs custom middleware instead (`db/postgraphile/guardrails.js`, wired into `server.js` via `pluginHook: makePluginHook([guardrails])`), enforcing two limits on the public endpoint:
+> - **Query depth ≤ `MAX_QUERY_DEPTH` (10)**, via `graphql-depth-limit`, registered as a static validation rule (`postgraphile:validationRules:static`).
+> - **Page size**, via a custom validation rule (`postgraphile:validationRules`) that walks every connection selection (`{ nodes { ... } }` / `{ edges { ... } }`) in the document, at any nesting level, and rejects it unless it carries a `first`/`last` argument that resolves (literal or variable) to a finite number no greater than `MAX_PAGE_SIZE` (100). A connection with no `first`/`last` at all is rejected too, since that falls through to PostGraphile's default of returning every row — the same unbounded-response risk as an oversized `first`.
+>
+> Both values give ~10x headroom over what the app itself sends today (deepest query is depth 5; largest `first` is `PAGE_SIZE`/`CHART_SIZE` at 10) while still rejecting the deeply-nested or huge-page-size requests a public, unauthenticated GraphQL endpoint is otherwise wide open to.
 
 ---
 

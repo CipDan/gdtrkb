@@ -35,10 +35,63 @@ const MAX_PAGE_SIZE = 100;
 // `postgraphile:validationRules` hook passes in from the actual parsed
 // request body — not available on GraphQL's ValidationContext itself, which
 // only sees the AST (variable *values* aren't bound until execution).
+// Resolves whether a selection set exposes a `nodes`/`edges` field, looking
+// through named-fragment spreads and inline fragments (not just direct
+// fields) so a connection wrapped in `...ToolConnectionFields` can't skip
+// the page-size check. `visitedFragmentNames` guards against fragment
+// cycles — invalid GraphQL that the built-in NoFragmentCyclesRule also
+// rejects, but rule execution order isn't guaranteed, so this rule must not
+// infinitely recurse on a maliciously cyclic document first.
+function selectionSetHasConnectionShape(
+  selections,
+  fragmentsByName,
+  visitedFragmentNames,
+) {
+  if (!selections) return false;
+  for (const selection of selections) {
+    if (
+      selection.kind === Kind.FIELD &&
+      (selection.name.value === "nodes" || selection.name.value === "edges")
+    ) {
+      return true;
+    }
+    if (selection.kind === Kind.INLINE_FRAGMENT) {
+      if (
+        selectionSetHasConnectionShape(
+          selection.selectionSet && selection.selectionSet.selections,
+          fragmentsByName,
+          visitedFragmentNames,
+        )
+      ) {
+        return true;
+      }
+    }
+    if (selection.kind === Kind.FRAGMENT_SPREAD) {
+      const fragmentName = selection.name.value;
+      const fragment = fragmentsByName[fragmentName];
+      if (!fragment || visitedFragmentNames.has(fragmentName)) continue;
+      visitedFragmentNames.add(fragmentName);
+      const found = selectionSetHasConnectionShape(
+        fragment.selectionSet && fragment.selectionSet.selections,
+        fragmentsByName,
+        visitedFragmentNames,
+      );
+      visitedFragmentNames.delete(fragmentName);
+      if (found) return true;
+    }
+  }
+  return false;
+}
+
 function maxPageSizeRule(variables) {
   return (context) => {
     const literalDefaults = {};
+    const fragmentsByName = {};
     for (const definition of context.getDocument().definitions) {
+      if (definition.kind === Kind.FRAGMENT_DEFINITION) {
+        fragmentsByName[definition.name.value] = definition;
+        continue;
+      }
       if (definition.kind !== Kind.OPERATION_DEFINITION) continue;
       for (const varDef of definition.variableDefinitions || []) {
         if (varDef.defaultValue && varDef.defaultValue.kind === Kind.INT) {
@@ -70,16 +123,14 @@ function maxPageSizeRule(variables) {
         // `{ edges { ... } }`) can return unbounded row sets — plain
         // scalar/object fields and `{ totalCount }`-only selections (e.g.
         // POPULARITY_CHART_QUERY's `missing` count) don't fetch rows and
-        // need no cap.
+        // need no cap. Looks through fragment spreads/inline fragments too,
+        // not just direct fields.
         const selections = node.selectionSet && node.selectionSet.selections;
-        const isConnectionSelection =
-          selections &&
-          selections.some(
-            (selection) =>
-              selection.kind === Kind.FIELD &&
-              (selection.name.value === "nodes" ||
-                selection.name.value === "edges"),
-          );
+        const isConnectionSelection = selectionSetHasConnectionShape(
+          selections,
+          fragmentsByName,
+          new Set(),
+        );
         if (!isConnectionSelection) return;
 
         const args = node.arguments || [];
