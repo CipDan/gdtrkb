@@ -300,7 +300,7 @@ This is *how the app is built*, not part of its runtime stack — but it's a cle
 - [ ] "Retro accent, modern bones" design system applied; WCAG AA body text; visible focus states.
 - [ ] Loading / empty / error states on every data view (including graceful API cold-start handling).
 - [ ] Fully responsive, desktop-first.
-- [ ] Deployed via one of the two paths in §10.
+- [ ] Deployed according to §10: Vercel frontend, Railway PostGraphile API, and Neon database.
 
 ---
 

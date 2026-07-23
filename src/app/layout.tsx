@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { VT323 } from "next/font/google";
 import "@/styles/globals.css";
+import Topbar from "@/components/ui/Topbar";
+import { getToolCount } from "@/lib/graphql/toolCount";
 
 const vt323 = VT323({
   weight: "400",
@@ -14,14 +16,24 @@ export const metadata: Metadata = {
     "A curated, searchable catalog of game development tools and how they relate to each other.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const toolCount = await getToolCount();
+
   return (
     <html lang="en" className={`${vt323.variable} h-full`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full">
+        <div className="mx-auto flex min-h-full max-w-[1180px] flex-col border-line md:border-x">
+          <Topbar toolCount={toolCount} />
+          <main className="flex flex-1 flex-col p-4">{children}</main>
+          <footer className="border-t border-line px-4 py-4 text-center text-[14px] text-dim">
+            Phosphor · GDTRKB
+          </footer>
+        </div>
+      </body>
     </html>
   );
 }

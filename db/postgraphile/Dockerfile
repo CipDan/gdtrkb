@@ -55,7 +55,7 @@ CMD ["sh", "-c", "exec npx postgraphile \
   --host 0.0.0.0 \
   --port \"$PORT\" \
   --disable-default-mutations \
-  --append-plugins postgraphile-plugin-connection-filter"]
+  --append-plugins postgraphile-plugin-connection-filter,@graphile-contrib/pg-simplify-inflector"]
 
 # ── Production hardening notes (optional, recommended) ──────────────────────
 #  • Run as non-root: add `USER node` (and ensure /app is readable by it).

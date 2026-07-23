@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "postgraphile": "^4",
-    "postgraphile-plugin-connection-filter": "^2"
+    "postgraphile-plugin-connection-filter": "^2",
+    "@graphile-contrib/pg-simplify-inflector": "^6"
   }
 }

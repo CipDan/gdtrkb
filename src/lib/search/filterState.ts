@@ -16,6 +16,9 @@ export interface FilterState {
   sort: SortKey;
   view: ViewMode;
   cursor: string | null;
+  // Stack of prior page cursors (oldest first), so "prev" works after a
+  // reload or shared URL landing on page 2+. `null` entries mean "page 1".
+  cursorHistory: (string | null)[];
 }
 
 export const DEFAULT_FILTER_STATE: FilterState = {
@@ -30,6 +33,7 @@ export const DEFAULT_FILTER_STATE: FilterState = {
   sort: "name",
   view: "grid",
   cursor: null,
+  cursorHistory: [],
 };
 
 export function parseFilterState(params: URLSearchParams): FilterState {
@@ -47,6 +51,7 @@ export function parseFilterState(params: URLSearchParams): FilterState {
     sort: (params.get("sort") as SortKey | null) ?? DEFAULT_FILTER_STATE.sort,
     view: (params.get("view") as ViewMode | null) ?? DEFAULT_FILTER_STATE.view,
     cursor: params.get("cursor"),
+    cursorHistory: params.getAll("back").map((v) => (v === "" ? null : v)),
   };
 }
 
@@ -65,6 +70,7 @@ export function serializeFilterState(state: FilterState): URLSearchParams {
   if (state.sort !== DEFAULT_FILTER_STATE.sort) params.set("sort", state.sort);
   if (state.view !== DEFAULT_FILTER_STATE.view) params.set("view", state.view);
   if (state.cursor) params.set("cursor", state.cursor);
+  for (const c of state.cursorHistory) params.append("back", c ?? "");
 
   return params;
 }
