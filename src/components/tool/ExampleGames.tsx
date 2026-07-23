@@ -33,11 +33,12 @@ export default function ExampleGames({ games }: { games: ToolDetail["exampleGame
               <div>
                 <div className="text-[19px] leading-[1.1] text-pale">{game.name}</div>
                 <div className="text-[15px] text-dim">
-                  {game.developer}
-                  {game.releaseYear && ` · ${game.releaseYear}`}
-                  {game.storeLinks.map((link) => (
+                  {[game.developer, game.releaseYear ? String(game.releaseYear) : null]
+                    .filter((part): part is string => Boolean(part))
+                    .join(" · ")}
+                  {game.storeLinks.map((link, index) => (
                     <span key={link.url}>
-                      {" · "}
+                      {(game.developer || game.releaseYear || index > 0) && " · "}
                       <a
                         href={link.url}
                         className="text-bright hover:underline"

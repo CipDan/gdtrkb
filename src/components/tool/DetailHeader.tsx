@@ -14,7 +14,7 @@ export default function DetailHeader({ tool }: { tool: ToolDetail }) {
         <Link href="/" className="text-bright hover:underline">
           <span aria-hidden="true">{"‹ "}</span>back to index
         </Link>
-        {"  ·  gdtrkb / "}
+        {"  ·  GDTRKB / "}
         {tool.slug}
       </p>
 
