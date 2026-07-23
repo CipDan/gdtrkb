@@ -21,9 +21,15 @@ const depthLimit = require("graphql-depth-limit");
 const MAX_QUERY_DEPTH = 10;
 const MAX_PAGE_SIZE = 100;
 
-// Walks every `first`/`last` argument in the document (at any nesting level,
+// Walks every connection selection in the document (at any nesting level,
 // so a facet's relation sub-connection is covered too, not just the root
-// `tools` connection) and rejects it if the resolved value is too large.
+// `tools` connection) — a field whose selection set contains `nodes` or
+// `edges` — and rejects it unless it carries a `first`/`last` argument that
+// resolves to a finite number no greater than MAX_PAGE_SIZE. Without this,
+// a connection selection with no `first`/`last` at all falls through to
+// PostGraphile's default of returning every row, which is the same
+// unbounded-response risk as an oversized `first` — just spelled by
+// omission instead of a huge literal.
 // Resolves both literal values (`first: 5000`) and variable references
 // (`first: $n`), the latter via the `variables` object PostGraphile's
 // `postgraphile:validationRules` hook passes in from the actual parsed
@@ -44,30 +50,71 @@ function maxPageSizeRule(variables) {
       }
     }
 
+    function resolveArgValue(argNode) {
+      if (!argNode) return undefined;
+      if (argNode.value.kind === Kind.INT) {
+        return parseInt(argNode.value.value, 10);
+      }
+      if (argNode.value.kind === Kind.VARIABLE) {
+        const varName = argNode.value.name.value;
+        return variables && variables[varName] !== undefined
+          ? variables[varName]
+          : literalDefaults[varName];
+      }
+      return undefined;
+    }
+
     return {
-      Argument(node) {
-        if (node.name.value !== "first" && node.name.value !== "last") {
-          return;
-        }
+      Field(node) {
+        // Only connection-shaped selections (`{ nodes { ... } }` /
+        // `{ edges { ... } }`) can return unbounded row sets — plain
+        // scalar/object fields and `{ totalCount }`-only selections (e.g.
+        // POPULARITY_CHART_QUERY's `missing` count) don't fetch rows and
+        // need no cap.
+        const selections = node.selectionSet && node.selectionSet.selections;
+        const isConnectionSelection =
+          selections &&
+          selections.some(
+            (selection) =>
+              selection.kind === Kind.FIELD &&
+              (selection.name.value === "nodes" ||
+                selection.name.value === "edges"),
+          );
+        if (!isConnectionSelection) return;
 
-        let value;
-        if (node.value.kind === Kind.INT) {
-          value = parseInt(node.value.value, 10);
-        } else if (node.value.kind === Kind.VARIABLE) {
-          const varName = node.value.name.value;
-          value =
-            variables && variables[varName] !== undefined
-              ? variables[varName]
-              : literalDefaults[varName];
-        }
+        const args = node.arguments || [];
+        const firstArg = args.find((arg) => arg.name.value === "first");
+        const lastArg = args.find((arg) => arg.name.value === "last");
 
-        if (typeof value === "number" && value > MAX_PAGE_SIZE) {
+        if (!firstArg && !lastArg) {
           context.reportError(
             new GraphQLError(
-              `Argument "${node.name.value}" must not exceed ${MAX_PAGE_SIZE}.`,
+              `Connection field "${node.name.value}" must specify a "first" or "last" argument (max ${MAX_PAGE_SIZE}).`,
               node,
             ),
           );
+          return;
+        }
+
+        for (const argNode of [firstArg, lastArg]) {
+          if (!argNode) continue;
+          const value = resolveArgValue(argNode);
+
+          if (typeof value !== "number" || !Number.isFinite(value)) {
+            context.reportError(
+              new GraphQLError(
+                `Argument "${argNode.name.value}" on "${node.name.value}" must resolve to a finite number (max ${MAX_PAGE_SIZE}).`,
+                argNode,
+              ),
+            );
+          } else if (value > MAX_PAGE_SIZE) {
+            context.reportError(
+              new GraphQLError(
+                `Argument "${argNode.name.value}" must not exceed ${MAX_PAGE_SIZE}.`,
+                argNode,
+              ),
+            );
+          }
         }
       },
     };

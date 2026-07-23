@@ -53,8 +53,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY server.js ./
-
+COPY server.js guardrails.js ./
 # [2] Local fallback only — Railway overrides PORT at runtime.
 ENV PORT=5000
 EXPOSE 5000

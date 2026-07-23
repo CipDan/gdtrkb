@@ -85,9 +85,12 @@ export default function SearchPageClient({
   const cursorHistory = filters.cursorHistory;
 
   const isFirstRender = useRef(true);
+  // Shared across every call site (effect-driven and manual retry) so a
+  // stale in-flight request can never overwrite results from a newer one.
+  const requestIdRef = useRef(0);
 
   const runSearch = useCallback(() => {
-    let cancelled = false;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
@@ -97,20 +100,16 @@ export default function SearchPageClient({
         return res.json() as Promise<ToolsConnection>;
       })
       .then((json) => {
-        if (!cancelled) setData(json);
+        if (requestIdRef.current === requestId) setData(json);
       })
       .catch(() => {
-        if (!cancelled) {
+        if (requestIdRef.current === requestId) {
           setError("Search is temporarily unavailable. The API may be cold-starting.");
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (requestIdRef.current === requestId) setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [requestParams]);
 
   useEffect(() => {
@@ -119,7 +118,7 @@ export default function SearchPageClient({
       return;
     }
 
-    return runSearch();
+    runSearch();
   }, [runSearch]);
 
   function pushUrl(next: FilterState) {

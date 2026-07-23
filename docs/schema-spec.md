@@ -878,7 +878,7 @@ const SimplifyInflectorPlugin = require("@graphile-contrib/pg-simplify-inflector
 const middleware = postgraphile(process.env.DATABASE_URL, "public", {
   appendPlugins: [ConnectionFilterPlugin, SimplifyInflectorPlugin],
   disableDefaultMutations: true,   // read-only public surface
-  graphiql: true,
+  graphiql: process.env.ENABLE_GRAPHIQL === "true",   // off by default; opt in for local/dev
   graphileBuildOptions: {
     connectionFilterRelations: true, // enables the some/every/none relation filters
   },
