@@ -51,7 +51,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - One-time scaffold (before `package.json` exists): `npx create-next-app@latest`
 - `npm run dev` — local dev server
 - `npm run build` / `npm run start` — production build / serve
-- `npm run lint` — ESLint  ·  `npm run typecheck` — `tsc --noEmit`  ·  `npm test` — Vitest
+- `npm run lint` — ESLint  ·  `npm run typecheck` — `tsc --noEmit`  ·  `npm run test` — Vitest
 - DB (managed): `psql "$DATABASE_URL" -f db/01_schema.sql && psql "$DATABASE_URL" -f db/02_seed.sql`
 - DB (local, self-managed VPS): no compose file is included in this repo — `docs/deployment.md` Pattern D documents the pattern (Postgres + PostGraphile + Caddy) if you want to build one; the project's actual deploy path is Vercel + Railway + Neon (`docs/ci-deploy-setup.md`)
 

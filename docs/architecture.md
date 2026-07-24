@@ -134,7 +134,7 @@ Tests are colocated `*.test.ts` files next to the module they cover (e.g. `lib/s
 | A new GraphQL query | `src/lib/graphql/queries.ts` (server-only) |
 | Filter/URL-state logic | `src/lib/search/` |
 | A new route/page | `src/app/…` |
-| A new test | colocated `<module>.test.ts` beside the module it covers; run via `npm test` (Vitest — `vitest.config.ts` aliases `server-only` to a stub so server-only modules stay testable) |
+| A new test | colocated `<module>.test.ts` beside the module it covers; run via `npm run test` (Vitest — `vitest.config.ts` aliases `server-only` to a stub so server-only modules stay testable) |
 | A design token change | `docs/design/<chosen>.md` (decision) → `src/styles/globals.css` (impl) |
 | A DB schema change | `db/01_schema.sql` **and** update `docs/schema-spec.md` |
 | A catalog / seed data change | `db/02_seed.sql` (conventions enforced by the `catalog-seed` skill) |
@@ -152,4 +152,4 @@ Tests are colocated `*.test.ts` files next to the module they cover (e.g. `lib/s
 - Server-only modules (`lib/graphql/*`) carry a `import 'server-only'` guard.
 - Styling via Tailwind utilities + the token CSS variables; no ad-hoc hex values in components — reference the tokens.
 - Keep components presentational where possible; data-fetching lives in Server Components / route handlers / `lib`.
-- Tests: colocated `<module>.test.ts` beside the module under test (e.g. `src/lib/search/buildFilter.test.ts`), run via Vitest (`npm test`). `vitest.config.ts` aliases the `server-only` package to a stub, since it unconditionally throws outside Next's server bundler — this lets tests import server-only `lib` modules without pulling in a real GraphQL client or a schema.
+- Tests: colocated `<module>.test.ts` beside the module under test (e.g. `src/lib/search/buildFilter.test.ts`), run via Vitest (`npm run test`). `vitest.config.ts` aliases the `server-only` package to an empty stub (`test/server-only-mock.ts`), since the real package unconditionally throws outside Next's server bundler — the stub only bypasses that throw, so server-only `lib` modules can be imported in tests.
