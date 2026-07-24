@@ -844,7 +844,7 @@ type Game {
 - **Timestamps.** `updated_at` can be maintained by a simple `BEFORE UPDATE` trigger if desired.
 - **Hosting.** Any Postgres host (managed or self-hosted) plus a single PostGraphile process (Node) or the PostGraphile Docker image. No application server logic required.
 - **Companion files.** The DDL and seed in §3–§4.9 are provided as two ordered, runnable plain-SQL files: **`01_schema.sql`** (enums, tables, indexes, view + smart comments, functions) and **`02_seed.sql`** (the §4.8 sample data). Run them in order: `psql "$DATABASE_URL" -f 01_schema.sql && psql "$DATABASE_URL" -f 02_seed.sql`.
-- **Deployment.** Where and how to host this (managed, serverless, container, and VPS options that all support live search/filter/order/pagination, plus a recommended default) is covered in the companion **`deployment.md`**, with a ready-to-run `docker-compose.yml` for the VPS route.
+- **Deployment.** Where and how to host this (managed, serverless, container, and VPS options that all support live search/filter/order/pagination, plus a recommended default) is covered in the companion **`deployment.md`** — the VPS route is a documented pattern there (§7), not a file included in this repo; the project's actual, locked deploy path is Vercel + Railway + Neon (`app-spec.md` §10).
 
 ### 6.1 Running PostGraphile (Core)
 

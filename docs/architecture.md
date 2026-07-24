@@ -26,6 +26,7 @@ gdtrkb/
 ├─ docs/                       # project-level specs — source of truth (see §4)
 │  ├─ architecture.md          #   this file
 │  ├─ app-spec.md              #   MVP application build spec (the WHAT)
+│  ├─ app-spec-s9-s10-snapshot.md #   pre-lock archive of §9/§10, referenced by app-spec.md §10 — logging only, not current
 │  ├─ schema-spec.md           #   DB schema + GraphQL API contract
 │  ├─ deployment.md            #   hosting patterns + the two deploy paths
 │  ├─ ci-deploy-setup.md       #   CI + deploy runbook (GitHub · Vercel · Railway · Neon)
@@ -36,14 +37,18 @@ gdtrkb/
 │     └─ phosphor-hifi-mock.html     # pixel reference for the chosen direction
 ├─ db/                         # database + API-engine assets
 │  ├─ 01_schema.sql            # DDL + bidirectional view + rollup functions
+│  ├─ 00_grants.sql            # SELECT-only `gdtrkb_ro` role + grants (deployment concern, run after 01_schema.sql)
 │  ├─ 02_seed.sql              # catalog seed (curator-owned; re-runnable via a leading TRUNCATE)
-│  ├─ docker-compose.yml       # Postgres + PostGraphile + Caddy (VPS path)
-│  └─ postgraphile/Dockerfile  # the PostGraphile container (Railway / always-on)
+│  └─ postgraphile/            # the PostGraphile container (Railway / always-on)
+│     ├─ Dockerfile
+│     ├─ server.js             # library-mode PostGraphile entrypoint
+│     ├─ guardrails.js         # query depth/page-size/cost guardrails (+ guardrails.test.js)
+│     └─ package.json
 ├─ public/                     # static assets, self-hosted fonts, logo frames
 └─ src/                        # the Next.js application (see §2)
 ```
 
-The `docs/`, `db/`, and `src/` folders are siblings. Vercel builds from the repo root (the Next app); the PostGraphile container builds from `db/postgraphile/`.
+The `docs/`, `db/`, and `src/` folders are siblings. Vercel builds from the repo root (the Next app); the PostGraphile container builds from `db/postgraphile/`. `deployment.md`'s Pattern D (self-managed VPS via Docker Compose) is documented there as an option, not an included file — this repo only carries the Vercel + Railway + Neon path actually locked in `app-spec.md` §10.
 
 ---
 
@@ -59,30 +64,38 @@ src/
 │  ├─ not-found.tsx            # unknown-slug 404
 │  └─ error.tsx               # error boundary (API/cold-start failures)
 ├─ components/
-│  ├─ search/                  # SearchBar, FacetPanel, SortControl, ViewSwitch, Pagination
-│  ├─ results/                 # CardGrid, ToolCard, HighScoreTable
-│  ├─ tool/                    # detail sections: Header, SpecSheet, ExampleGames
+│  ├─ search/                  # SearchPageClient (URL-state orchestrator), SearchBar, FacetPanel, SortControl, ViewSwitch, Pagination
+│  ├─ results/                 # CardGrid, ToolCard, HighScoreTable, viewRegistry (the pluggable view-switch registry)
+│  ├─ tool/                    # detail sections: DetailHeader, SpecSheet, ExampleGames, Relationships
 │  ├─ graph/                   # ToolGraph (reusable) + graph text fallback
 │  ├─ chart/                   # PopularityChart
-│  └─ ui/                      # primitives: Badge, Button, LogoFrame, Tag
+│  └─ ui/                      # primitives: Badge, LicensingTag, LogoFrame, Tag, Topbar, Wordmark
 ├─ lib/
 │  ├─ graphql/                 # SERVER-ONLY GraphQL access
-│  │  ├─ client.ts             #   graphql-request client (never imported by client components)
-│  │  ├─ queries.ts            #   query builders — map to schema-spec §5.2x
-│  │  └─ types.ts              #   typed query results
+│  │  ├─ client.ts             #   graphql-request client + fetchGraphql/withTimeout (never imported by client components)
+│  │  ├─ queries.ts            #   query documents — map to schema-spec §5.2x
+│  │  ├─ types.ts              #   typed query results (domain + wire shapes)
+│  │  ├─ enumCasing.ts         #   lower_snake_case ⇄ UPPER_SNAKE_CASE enum boundary
+│  │  ├─ facets.ts             #   facet reference-data fetch (platforms/languages/areas)
+│  │  ├─ popularity.ts         #   popularity chart data fetch
+│  │  ├─ tool.ts               #   detail-page fetch + relationship merge/dedupe
+│  │  └─ toolCount.ts          #   header status-line total-count fetch
 │  ├─ search/                  # buildFilter(), URL ⇄ filter-state helpers
-│  └─ areas.ts                 # parent→descendants rollup for the area facet
+│  ├─ areas.ts                 # parent→descendants rollup for the area facet
+│  └─ format.ts                 # label/initials formatting helpers
 ├─ styles/
 │  └─ globals.css              # :root CSS variables from the chosen token doc
 └─ types/                      # shared domain types (Tool, Platform, Game, …)
 ```
+
+Tests are colocated `*.test.ts` files next to the module they cover (e.g. `lib/search/buildFilter.test.ts`), matching `db/postgraphile/guardrails.test.js`'s existing convention — see §5 and §6.
 
 **Component-to-spec mapping** (so the agent knows which spec section drives each folder):
 
 | Folder | Builds | Spec ref |
 |---|---|---|
 | `components/search/` | search bar, facets, sort, view switch, pagination | app-spec §7.1–7.4, §7.8 |
-| `components/results/` | card grid (default), high-score table (toggle) | app-spec §7.5, §7.6 |
+| `components/results/` | pluggable view registry, card grid (default), high-score table (toggle) | app-spec §7.3, §7.5, §7.6 |
 | `components/tool/` | detail-page sections | app-spec §8 |
 | `components/graph/` | reusable `ToolGraph` + text fallback | app-spec §7.7, §8.9 |
 | `components/chart/` | popularity bar chart | app-spec §6, §8.8 |
@@ -116,11 +129,12 @@ src/
 
 | New thing | Goes in |
 |---|---|
-| A new UI primitive (badge, button…) | `src/components/ui/` |
+| A new UI primitive (badge, tag…) | `src/components/ui/` |
 | A new detail-page section | `src/components/tool/` |
 | A new GraphQL query | `src/lib/graphql/queries.ts` (server-only) |
 | Filter/URL-state logic | `src/lib/search/` |
 | A new route/page | `src/app/…` |
+| A new test | colocated `<module>.test.ts` beside the module it covers; run via `npm test` (Vitest — `vitest.config.ts` aliases `server-only` to a stub so server-only modules stay testable) |
 | A design token change | `docs/design/<chosen>.md` (decision) → `src/styles/globals.css` (impl) |
 | A DB schema change | `db/01_schema.sql` **and** update `docs/schema-spec.md` |
 | A catalog / seed data change | `db/02_seed.sql` (conventions enforced by the `catalog-seed` skill) |
@@ -138,3 +152,4 @@ src/
 - Server-only modules (`lib/graphql/*`) carry a `import 'server-only'` guard.
 - Styling via Tailwind utilities + the token CSS variables; no ad-hoc hex values in components — reference the tokens.
 - Keep components presentational where possible; data-fetching lives in Server Components / route handlers / `lib`.
+- Tests: colocated `<module>.test.ts` beside the module under test (e.g. `src/lib/search/buildFilter.test.ts`), run via Vitest (`npm test`). `vitest.config.ts` aliases the `server-only` package to a stub, since it unconditionally throws outside Next's server bundler — this lets tests import server-only `lib` modules without pulling in a real GraphQL client or a schema.

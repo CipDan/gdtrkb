@@ -6,7 +6,11 @@ name: DB preview branch
 # against a production-shaped database, with zero risk to prod.
 #
 # Requires: secret NEON_API_KEY and variable NEON_PROJECT_ID — both created for
-# you by the Neon GitHub integration. See docs/ci-deploy-setup.md §6.
+# you by the Neon GitHub integration (see docs/ci-deploy-setup.md §6) — plus a
+# repo variable NEON_DB_ROLE naming the Neon owner/migration role (the same
+# role behind DATABASE_URL_MIGRATIONS elsewhere in this project, NOT the
+# read-only gdtrkb_ro role): create-branch-action needs it to build a
+# connection string that can run 02_seed.sql's TRUNCATE + INSERT statements.
 #
 # Because the branch inherits production's schema, this reapplies ONLY
 # db/02_seed.sql (idempotent via its leading TRUNCATE). A PR that changes
@@ -22,14 +26,17 @@ concurrency:
 
 jobs:
   reseed-branch:
-    # Skip (don't fail) until Neon is wired. NEON_PROJECT_ID is a repo *variable*
-    # created alongside NEON_API_KEY by the Neon GitHub integration, so its
-    # presence is a reliable proxy for "credentials exist." Note: the secrets
-    # context is NOT available in a job-level if, so we can't test the API key
-    # directly here — the variable is the thing we can check.
+    # Skip (don't fail) until Neon is wired. NEON_PROJECT_ID and NEON_DB_ROLE
+    # are repo *variables* (NEON_PROJECT_ID created alongside NEON_API_KEY by
+    # the Neon GitHub integration; NEON_DB_ROLE set by hand — see the file
+    # header), so their presence is a reliable proxy for "credentials/config
+    # exist." Note: the secrets context is NOT available in a job-level if, so
+    # we can't test the API key directly here — the variables are the thing
+    # we can check.
     if: >-
       github.event.action != 'closed' &&
-      vars.NEON_PROJECT_ID != ''
+      vars.NEON_PROJECT_ID != '' &&
+      vars.NEON_DB_ROLE != ''
     runs-on: ubuntu-latest   # psql ships preinstalled on ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +46,7 @@ jobs:
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}
+          username: ${{ vars.NEON_DB_ROLE }}
           api_key: ${{ secrets.NEON_API_KEY }}
       - name: Reseed the branch
         env:

@@ -59,7 +59,7 @@ Browser ──▶ Next.js (Vercel)
 | Framework | **Next.js (App Router), TypeScript** | React Server Components; SSG/ISR for detail pages. |
 | Styling | **Tailwind CSS** + a small design-token layer (§8) | Tokens encode the retro theme; utilities for layout. |
 | GraphQL client (server-side) | **`graphql-request`** (or `urql` core) | Lightweight; used only in server code. Do not ship a heavy client to the browser. |
-| Charts | A React chart lib (e.g. **Recharts**) | For the popularity bar chart only. |
+| Charts | A React chart lib (e.g. **Recharts**) | For the popularity bar chart only. **As built:** hand-rolled HTML/CSS bars instead — see §9's known deviations for why. |
 | Graph rendering | **Cytoscape.js** *or* **React Flow** | One choice, used by the reusable `ToolGraph` (§7.7). |
 | API engine | **PostGraphile Core (V4, MIT)** + `postgraphile-plugin-connection-filter` | Queries-only. Defined by the schema spec. |
 | Database | **PostgreSQL** | Schema + seed from the companion SQL files. |
@@ -258,6 +258,7 @@ The three options (see `gamedev-tools-style-directions.html` for the visual comp
 - **Facet panel** (§7.2) — the mock shows every facet always expanded in a static list; the real `FacetPanel` is a sticky, self-scrolling sidebar (`md:sticky` + capped height) whose facet groups are collapsible `<details>`/`<summary>` blocks, auto-expanded only when that facet is active. Real facet cardinality (the area-of-use tree, platforms, languages) is far larger than the mock's six-facet demo; the always-expanded layout stretched the page well past the results below it.
 - **Detail-page layout** (§8) — the mock's `.cols` puts Example Titles and Relationships side-by-side on desktop; the real page stacks both in a single full-width column at every viewport width. Real relationship graphs have more neighbors than the mock's 3-node example, and a 50%-width column was squeezing `ToolGraph`'s layout and labels; the graph's canvas also now sizes itself off its own neighbor count (§7.7), which needs the full column width to do well.
 - **Sort control** — the mock's `.ctl` implies a plain label with a native-style dropdown; the real `SortControl` (§7.2) is a hand-built listbox button + popup, since a native `<select>`'s open dropdown is OS-rendered chrome that can't be fully themed to Phosphor (no border-line frame, no bracket hover rows). The closed-state look still matches the mock.
+- **Popularity chart** (§6, §8.8) — §2's tech-stack table names a general React chart library (e.g. Recharts); the real `PopularityChart` is hand-built HTML/CSS instead — a plain filled-width bar per row, matching `design-tokens-3-phosphor.md` §1's chart spec exactly (`--ink` fill, `--pale` for the #1 bar, `--line` gridlines, `--dim` axis text). The mock's `.chart` is the same plain filled-track bar; a general-purpose chart library would have been harder to match pixel-for-pixel than building it directly, which is the same "match the mock exactly" principle behind this list's other entries.
 
 ---
 
