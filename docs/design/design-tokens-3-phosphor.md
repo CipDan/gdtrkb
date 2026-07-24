@@ -19,7 +19,7 @@ Deliberately **monochrome** — one amber phosphor hue in a few values. Meaning 
 | `--ink` | `#FFB000` | Primary amber text/lines |
 | `--bright` | `#FFCE5C` | Emphasis (headers, ranks, prompt, cursor, focus) |
 | `--pale` | `#FFF1C9` | Highest emphasis (card names, scores) |
-| `--dim` | `#9A7418` | Secondary text, labels |
+| `--dim` | `#AB8420` | Secondary text, labels |
 | `--line` | `#3A2C08` | Borders / dividers |
 
 **Licensing** is shown as **bracketed text tags** in `--ink` (e.g. `[FREE/OSS]`, `[PAID]`), **not** colored pills — keeping the monochrome discipline. The `licensing_model` enum maps to a short label, not a color.
@@ -103,7 +103,7 @@ Single-family system: VT323 at two+ sizes. Fallback stack: `'VT323', ui-monospac
 /* Fonts: <link> VT323 from Google Fonts */
 :root {
   --bg:#0A0A06; --surface:#12100A;
-  --ink:#FFB000; --bright:#FFCE5C; --pale:#FFF1C9; --dim:#9A7418; --line:#3A2C08;
+  --ink:#FFB000; --bright:#FFCE5C; --pale:#FFF1C9; --dim:#AB8420; --line:#3A2C08;
 
   --font-display:'VT323', ui-monospace, Menlo, monospace;
   --font-body:'VT323', ui-monospace, Menlo, monospace;

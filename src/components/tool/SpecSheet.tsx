@@ -95,6 +95,9 @@ export default function SpecSheet({ tool }: { tool: ToolDetail }) {
               {tool.confirmedTitlesAsOf && (
                 <span className="text-dim"> (as of {tool.confirmedTitlesAsOf})</span>
               )}
+              {tool.confirmedTitlesSource && (
+                <span className="text-dim"> — source: {tool.confirmedTitlesSource}</span>
+              )}
             </span>
           ) : (
             <span className="text-dim">no confirmed-titles figure available</span>

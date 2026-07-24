@@ -19,7 +19,7 @@ export default function DetailHeader({ tool }: { tool: ToolDetail }) {
       </p>
 
       <div className="flex flex-wrap items-start gap-4">
-        <LogoFrame name={tool.name} size={64} />
+        <LogoFrame name={tool.name} logoImageUrl={tool.logoImageUrl} size={64} />
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-[34px] leading-[1.1] text-pale">
             {tool.name}
