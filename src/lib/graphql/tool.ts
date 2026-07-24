@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { fetchGraphql } from "@/lib/graphql/client";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
+import { BUILD_GRAPHQL_TIMEOUT_MS, GRAPHQL_TIMEOUT_MS, fetchGraphql } from "@/lib/graphql/client";
 import { TOOL_BY_SLUG_QUERY, TOOL_SLUGS_QUERY } from "@/lib/graphql/queries";
 import { fromGraphqlEnum } from "@/lib/graphql/enumCasing";
 import type { ToolDetail, ToolDetailRelationship } from "@/lib/graphql/types";
@@ -114,9 +115,28 @@ function mergeRelationships(
 // boundary (app/error.tsx) handles it — the detail page has nothing else to
 // render if this fails, unlike search's soft-degrade (app-spec §7.9). A
 // `null` return means the query succeeded but the slug doesn't exist, so the
-// caller can call notFound() instead of showing an error.
+// caller can call notFound() instead of showing an error. That throw/null
+// contract stays the same in every context — the only thing that changes is
+// how long we wait before giving up. During `next build`'s static
+// generation loop (NEXT_PHASE=phase-production-build — set on the whole
+// build process, including its static-page-generation worker pool, per
+// node_modules/next/dist/build/index.js) a cold-starting DB can still take
+// longer than GRAPHQL_TIMEOUT_MS, and a throw here fails the *entire*
+// deploy, not just this one tool's page — so build time gets the same
+// generous budget as the other build-only calls. Live requests (an
+// on-demand render of a slug outside generateStaticParams, or an ISR
+// background revalidation) keep the tight default: a slow live visitor
+// should see the "cold-starting" error state promptly, not wait 25s for it.
 export const getToolBySlug = cache(async (slug: string): Promise<ToolDetail | null> => {
-  const result = await fetchGraphql<ToolBySlugResult>(TOOL_BY_SLUG_QUERY, { slug });
+  const timeoutMs =
+    process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD
+      ? BUILD_GRAPHQL_TIMEOUT_MS
+      : GRAPHQL_TIMEOUT_MS;
+  const result = await fetchGraphql<ToolBySlugResult>(
+    TOOL_BY_SLUG_QUERY,
+    { slug },
+    timeoutMs,
+  );
 
   const tool = result.toolBySlug;
   if (!tool) return null;
@@ -171,7 +191,11 @@ export const getToolBySlug = cache(async (slug: string): Promise<ToolDetail | nu
 // failing the whole build over a transient upstream blip.
 export async function getAllToolSlugs(): Promise<string[]> {
   try {
-    const result = await fetchGraphql<ToolSlugsResult>(TOOL_SLUGS_QUERY);
+    const result = await fetchGraphql<ToolSlugsResult>(
+      TOOL_SLUGS_QUERY,
+      undefined,
+      BUILD_GRAPHQL_TIMEOUT_MS,
+    );
     return result.tools.nodes.map((node) => node.slug);
   } catch (err) {
     console.error("getAllToolSlugs failed; falling back to empty slug list", err);

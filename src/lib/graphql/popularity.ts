@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { fetchGraphql } from "@/lib/graphql/client";
+import { BUILD_GRAPHQL_TIMEOUT_MS, fetchGraphql } from "@/lib/graphql/client";
 import { POPULARITY_CHART_QUERY } from "@/lib/graphql/queries";
 import type { PopularityChartData, PopularityToolNode } from "@/lib/graphql/types";
 
@@ -19,6 +19,7 @@ export const getPopularityChartData = cache(
       const result = await fetchGraphql<PopularityChartWire>(
         POPULARITY_CHART_QUERY,
         { first: CHART_SIZE },
+        BUILD_GRAPHQL_TIMEOUT_MS,
       );
 
       return {

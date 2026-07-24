@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SearchPageClient from "@/components/search/SearchPageClient";
 import PopularityChart from "@/components/chart/PopularityChart";
 import { getFacetOptions } from "@/lib/graphql/facets";
@@ -28,11 +29,13 @@ export default async function SearchPage() {
         Game Development Tools &amp; Resources Knowledge Bank
       </h1>
 
-      <SearchPageClient
-        areaTree={areaTree}
-        platforms={facets.platforms}
-        languages={facets.languages}
-      />
+      <Suspense fallback={<p className="border border-line p-4 text-center text-dim">loading…</p>}>
+        <SearchPageClient
+          areaTree={areaTree}
+          platforms={facets.platforms}
+          languages={facets.languages}
+        />
+      </Suspense>
 
       <PopularityChart data={popularity} />
     </div>

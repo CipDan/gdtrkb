@@ -12,6 +12,14 @@ export const graphqlClient = new GraphQLClient(endpoint);
 
 export const GRAPHQL_TIMEOUT_MS = 5000;
 
+// Neon's compute autosuspends after 5min idle (Free plan default) and can
+// take longer than GRAPHQL_TIMEOUT_MS to wake on the first query after a
+// deploy. Calls that only ever run during `next build` (never awaited by a
+// live visitor) can afford to wait a cold start out instead of shipping a
+// degraded/empty static page — see docs/snapshots for the cold-start
+// investigation this came out of.
+export const BUILD_GRAPHQL_TIMEOUT_MS = 25000;
+
 // Bounds a GraphQL request so a stalled upstream can't hang the caller
 // (e.g. an SSR render with no error boundary) indefinitely. Owns the
 // AbortController itself and aborts it on timeout — relying solely on a
@@ -20,13 +28,14 @@ export const GRAPHQL_TIMEOUT_MS = 5000;
 // leave the real network request running unbounded after callers give up.
 export function withTimeout<T>(
   makeRequest: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number = GRAPHQL_TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController();
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       controller.abort();
       reject(new Error("GraphQL request timed out"));
-    }, GRAPHQL_TIMEOUT_MS);
+    }, timeoutMs);
     makeRequest(controller.signal)
       .then(resolve, (err: unknown) =>
         // Normalize: an aborted signal rejects with a DOMException — its
@@ -45,12 +54,17 @@ export function withTimeout<T>(
 }
 
 // Shared by every GraphQL call site to avoid repeating the
-// withTimeout(() => graphqlClient.request(...)) boilerplate.
+// withTimeout(() => graphqlClient.request(...)) boilerplate. `timeoutMs`
+// defaults to the live-request-safe GRAPHQL_TIMEOUT_MS; pass
+// BUILD_GRAPHQL_TIMEOUT_MS explicitly from call sites that only ever run
+// during `next build`.
 export function fetchGraphql<T>(
   document: string,
   variables?: Record<string, unknown>,
+  timeoutMs?: number,
 ): Promise<T> {
-  return withTimeout((signal) =>
-    graphqlClient.request<T>({ document, variables, signal }),
+  return withTimeout(
+    (signal) => graphqlClient.request<T>({ document, variables, signal }),
+    timeoutMs,
   );
 }
