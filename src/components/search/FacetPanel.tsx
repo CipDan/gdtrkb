@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { TOOL_TYPE_OPTIONS, LICENSING_OPTIONS } from "@/lib/search/staticFacetOptions";
 import type { FilterState } from "@/lib/search/filterState";
 import type { AreaOfUseTreeNode } from "@/lib/areas";
@@ -41,7 +42,7 @@ function OptionButton({
       tabIndex={radio ? (checked ? 0 : -1) : undefined}
       onClick={onClick}
       className={`block w-full py-px text-left text-[18px] ${indent ? "pl-3.5 text-[17px]" : ""} ${
-        checked ? "text-pale" : "text-ink"
+        checked ? "text-pale" : "text-ink hover:text-bright"
       }`}
     >
       <span className={checked ? "text-bright" : "text-dim"}>{glyph}</span> {label}
@@ -49,12 +50,34 @@ function OptionButton({
   );
 }
 
-function FacetGroup({ lead, children }: { lead: string; children: React.ReactNode }) {
+// Collapsible facet group: a native <details>/<summary> so a large facet
+// list (real catalog data, unlike the mock's handful of options) doesn't
+// force the whole panel — and page — to stretch vertically. Open state is
+// local and computed once at mount from whether the facet is active, so a
+// later filter change elsewhere on the page (which re-renders FacetPanel)
+// doesn't snap a user's manual expand/collapse back.
+function FacetGroup({
+  lead,
+  defaultOpen,
+  children,
+}: {
+  lead: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mb-4 last:mb-0">
-      <div className="mb-1 text-[15px] uppercase tracking-wide text-dim">{lead}</div>
-      {children}
-    </div>
+    <details
+      className="mb-4 last:mb-0"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary className="mb-1 flex cursor-pointer list-none items-center gap-1.5 text-[15px] uppercase tracking-wide text-dim marker:content-none hover:text-ink [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true">{open ? "[-]" : "[+]"}</span>
+        {lead}
+      </summary>
+      <div className="mt-1">{children}</div>
+    </details>
   );
 }
 
@@ -88,12 +111,15 @@ export default function FacetPanel({
   onClear,
 }: FacetPanelProps) {
   return (
-    <aside className="border border-line" aria-label="Filters">
+    <aside
+      className="border border-line md:sticky md:top-4 md:flex md:max-h-[calc(100vh-2rem)] md:flex-col"
+      aria-label="Filters"
+    >
       <div className="border-b border-dotted border-line px-3 py-1.5 text-[16px] uppercase tracking-wide text-bright">
         {"// filters"}
       </div>
-      <div className="p-3">
-        <FacetGroup lead="type">
+      <div className="phosphor-scrollbar p-3 md:min-h-0 md:overflow-y-auto">
+        <FacetGroup lead="type" defaultOpen={filters.type !== null}>
           <div role="radiogroup" aria-label="Tool type" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -113,7 +139,7 @@ export default function FacetPanel({
           </div>
         </FacetGroup>
 
-        <FacetGroup lead="area of use">
+        <FacetGroup lead="area of use" defaultOpen={filters.area !== null}>
           <div role="radiogroup" aria-label="Area of use" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -145,7 +171,7 @@ export default function FacetPanel({
           <p className="mt-0.5 text-[14px] text-dim">selecting a parent includes its children</p>
         </FacetGroup>
 
-        <FacetGroup lead="runs on">
+        <FacetGroup lead="runs on" defaultOpen={filters.hostOs !== null}>
           <div role="radiogroup" aria-label="Runs on" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -165,7 +191,7 @@ export default function FacetPanel({
           </div>
         </FacetGroup>
 
-        <FacetGroup lead="exports to">
+        <FacetGroup lead="exports to" defaultOpen={filters.target !== null}>
           <div role="radiogroup" aria-label="Exports to" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -185,7 +211,7 @@ export default function FacetPanel({
           </div>
         </FacetGroup>
 
-        <FacetGroup lead="language">
+        <FacetGroup lead="language" defaultOpen={filters.language !== null}>
           <div role="radiogroup" aria-label="Language" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -205,7 +231,7 @@ export default function FacetPanel({
           </div>
         </FacetGroup>
 
-        <FacetGroup lead="licensing">
+        <FacetGroup lead="licensing" defaultOpen={filters.licensing !== null}>
           <div role="radiogroup" aria-label="Licensing" onKeyDown={handleRadioGroupKeyDown}>
             <OptionButton
               radio
@@ -240,7 +266,7 @@ export default function FacetPanel({
         <button
           type="button"
           onClick={onClear}
-          className="border border-line px-2.5 py-0.5 text-bright"
+          className="border border-line px-2.5 py-0.5 text-bright hover:border-ink"
         >
           {"> clear filters"}
         </button>

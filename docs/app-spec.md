@@ -254,6 +254,11 @@ The three options (see `gamedev-tools-style-directions.html` for the visual comp
 - The neighborhood graph has the §8.9 text fallback, and meaning is never conveyed by color alone.
 - **Excluded from the MVP** (deferred to full 16-bit in Phase 2): custom sprite art, CRT/scanline shaders, and bespoke per-tool pixel icons — use each tool's real logo inside a consistent frame instead.
 
+**Known deviations from `phosphor-hifi-mock.html`** (intentional, approved against real catalog data — the mock is annotated at each spot; don't "fix" the code back to literal pixel match without asking first):
+- **Facet panel** (§7.2) — the mock shows every facet always expanded in a static list; the real `FacetPanel` is a sticky, self-scrolling sidebar (`md:sticky` + capped height) whose facet groups are collapsible `<details>`/`<summary>` blocks, auto-expanded only when that facet is active. Real facet cardinality (the area-of-use tree, platforms, languages) is far larger than the mock's six-facet demo; the always-expanded layout stretched the page well past the results below it.
+- **Detail-page layout** (§8) — the mock's `.cols` puts Example Titles and Relationships side-by-side on desktop; the real page stacks both in a single full-width column at every viewport width. Real relationship graphs have more neighbors than the mock's 3-node example, and a 50%-width column was squeezing `ToolGraph`'s layout and labels; the graph's canvas also now sizes itself off its own neighbor count (§7.7), which needs the full column width to do well.
+- **Sort control** — the mock's `.ctl` implies a plain label with a native-style dropdown; the real `SortControl` (§7.2) is a hand-built listbox button + popup, since a native `<select>`'s open dropdown is OS-rendered chrome that can't be fully themed to Phosphor (no border-line frame, no bracket hover rows). The closed-state look still matches the mock.
+
 ---
 
 ## 10. Deployment

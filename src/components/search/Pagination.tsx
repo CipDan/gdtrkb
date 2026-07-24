@@ -24,7 +24,7 @@ export default function Pagination({
         type="button"
         onClick={onPrev}
         disabled={!hasPrev || loading}
-        className="border border-line px-3 py-0.5 text-ink disabled:border-line/40 disabled:text-line"
+        className="border border-line px-3 py-0.5 text-ink hover:border-ink hover:text-bright disabled:border-line/40 disabled:text-line disabled:hover:text-line"
       >
         &lsaquo; prev
       </button>
@@ -35,7 +35,7 @@ export default function Pagination({
         type="button"
         onClick={onNext}
         disabled={!hasNext || loading}
-        className="border border-line px-3 py-0.5 text-ink disabled:border-line/40 disabled:text-line"
+        className="border border-line px-3 py-0.5 text-ink hover:border-ink hover:text-bright disabled:border-line/40 disabled:text-line disabled:hover:text-line"
       >
         next &rsaquo;
       </button>

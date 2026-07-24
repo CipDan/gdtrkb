@@ -48,7 +48,13 @@ export default async function ToolDetailPage({
 
       <SpecSheet tool={tool} />
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
+      {/* Stacked rather than side-by-side (unlike phosphor-hifi-mock.html's
+          desktop .cols): real relationship graphs have more neighbors than
+          the mock's 3-node example, and a 50%-width column was squeezing
+          ToolGraph's layout/labels. Full width also leaves room for future
+          per-game banner images (ExampleGames), matching how tool logos
+          already get a consistent frame. */}
+      <div className="mt-4 flex flex-col gap-4">
         <ExampleGames games={tool.exampleGames} />
         <Relationships tool={tool} />
       </div>

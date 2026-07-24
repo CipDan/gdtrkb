@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -47,8 +47,8 @@ function ToolNode({ data }: NodeProps<FlowNode>) {
     <div
       className={
         data.isFocus
-          ? "border-2 border-bright px-2.5 py-1.5 text-[17px] whitespace-nowrap text-pale"
-          : "border border-line px-2.5 py-1.5 text-[16px] whitespace-nowrap text-ink"
+          ? "cursor-pointer border-2 border-bright px-2.5 py-1.5 text-[17px] whitespace-nowrap text-pale transition-colors"
+          : "cursor-pointer border border-line px-2.5 py-1.5 text-[16px] whitespace-nowrap text-ink transition-colors hover:border-bright hover:text-bright"
       }
       style={{ background: "var(--bg)", fontFamily: "var(--font-display)" }}
     >
@@ -123,14 +123,34 @@ function RelationshipEdge({ source, target, data, markerEnd }: EdgeProps<FlowEdg
 
 const edgeTypes: EdgeTypes = { relationship: RelationshipEdge };
 
+// Canvas sizing: the ring's world-space radius is what React Flow's
+// `fitView` has to zoom/scale to fit into the rendered container, so a
+// container that stays a fixed size while the radius grows with neighbor
+// count (more tools relate to popular ones) forces fitView to zoom out
+// further and shrink text/nodes — the "graph especially affected" crowding.
+// Sizing the container itself off the same radius keeps zoom roughly
+// constant regardless of neighbor count or the panel's actual width.
+const MIN_CANVAS_HEIGHT = 220;
+const MAX_CANVAS_HEIGHT = 600;
+// Half a node's rendered width plus a small margin — used to keep the ring
+// from overflowing a narrow container; approximate since node width is
+// content-dependent (tool name length), fitView's own padding covers the rest.
+const NODE_HALF_WIDTH_ALLOWANCE = 90;
+// Bucketing the measured width avoids remounting ReactFlow (and re-running
+// fitView) on every sub-pixel resize event.
+const WIDTH_BUCKET = 40;
+
+function computeRingRadius(ringLength: number): number {
+  return Math.max(130, 70 + ringLength * 22);
+}
+
 // Radial layout: the focus node (if any) at the center, every other node
 // evenly spaced on a ring around it. With no focus node (or none found), all
 // nodes share the ring — a reasonable fallback for a future peer graph
 // (Phase 2, §12) with no single "current" tool.
-function layoutNodes(props: ToolGraphProps): FlowNode[] {
+function layoutNodes(props: ToolGraphProps, radius: number): FlowNode[] {
   const focusIndex = props.focusSlug ? props.nodes.findIndex((n) => n.slug === props.focusSlug) : -1;
   const ring = focusIndex >= 0 ? props.nodes.filter((_, i) => i !== focusIndex) : props.nodes;
-  const radius = Math.max(130, 70 + ring.length * 22);
 
   const positioned: FlowNode[] = [];
   if (focusIndex >= 0) {
@@ -155,8 +175,35 @@ function layoutNodes(props: ToolGraphProps): FlowNode[] {
 }
 
 export default function ToolGraph(props: ToolGraphProps) {
-  const { edges, onNodeClick } = props;
-  const flowNodes = useMemo(() => layoutNodes(props), [props]);
+  const { edges, onNodeClick, nodes, focusSlug } = props;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => setContainerWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const ringLength = focusSlug ? Math.max(0, nodes.length - 1) : nodes.length;
+  const countRadius = computeRingRadius(ringLength);
+  // Cap the radius so the ring fits a narrow container's width; leave it
+  // alone once there's enough width to spare.
+  const radius =
+    containerWidth > 0
+      ? Math.min(countRadius, Math.max(100, containerWidth / 2 - NODE_HALF_WIDTH_ALLOWANCE))
+      : countRadius;
+  const canvasHeight = Math.min(
+    MAX_CANVAS_HEIGHT,
+    Math.max(MIN_CANVAS_HEIGHT, radius * 1.7 + 120),
+  );
+  const widthBucket = Math.round(containerWidth / WIDTH_BUCKET);
+
+  const flowNodes = useMemo(() => layoutNodes(props, radius), [props, radius]);
   const flowEdges = useMemo<FlowEdge[]>(
     () =>
       edges.map((edge) => ({
@@ -174,14 +221,22 @@ export default function ToolGraph(props: ToolGraphProps) {
 
   return (
     <div>
-      <div style={{ height: 260 }}>
+      <div ref={containerRef} className="w-full" style={{ height: canvasHeight }}>
         <ReactFlow
+          // Remounts (and re-runs fitView) when the measured width crosses a
+          // bucket boundary, since `fitView` only fits once on mount and
+          // wouldn't otherwise re-fit after the first async width measurement.
+          key={`${flowNodes.length}-${widthBucket}`}
           nodes={flowNodes}
           edges={flowEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
-          fitViewOptions={{ padding: 0.35 }}
+          // Library default is 0.1; a touch more than that keeps room for
+          // edge labels near the border without wasting the ~35% margin the
+          // old value reserved, which was shrinking every graph regardless
+          // of neighbor count.
+          fitViewOptions={{ padding: 0.15 }}
           proOptions={{ hideAttribution: true }}
           nodesDraggable={false}
           nodesConnectable={false}

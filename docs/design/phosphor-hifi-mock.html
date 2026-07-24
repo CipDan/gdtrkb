@@ -202,6 +202,16 @@
       <div class="layout">
 
         <!-- filters -->
+        <!-- SUPERSEDED (kept for the original design vision, not pixel-current):
+             the real facet panel (src/components/search/FacetPanel.tsx) is no
+             longer this flat, always-fully-expanded list. Against real catalog
+             data (many more area-of-use/platform/language options than the six
+             demo facets below), an always-open panel stretched the page far
+             past the results below it. It's now a sticky, self-scrolling
+             sidebar (`md:sticky` + capped height) whose facet groups are
+             collapsible <details>/<summary> blocks ("[+] type" / "[-] type"),
+             auto-expanded only when that facet is active. See app-spec.md §9
+             for the decision record. -->
         <aside class="panel" aria-label="Filters">
           <div class="panel-title">// filters</div>
           <div class="panel-body">
@@ -268,6 +278,15 @@
           <div class="results-head">
             <span class="count">6 tools · filtered by area: asset creation</span>
             <div class="controls">
+              <!-- SUPERSEDED (kept for the original design vision, not pixel-current):
+                   this is a static label in the mock, but the real sort control
+                   (src/components/search/SortControl.tsx) is an interactive
+                   listbox button + popup, not a native <select> — a native
+                   select's open dropdown is OS-rendered chrome that can't be
+                   fully themed to Phosphor (no border-line frame, no bracket
+                   hover rows), so it's hand-built instead. Closed-state look
+                   (`sort: <b>name a–z</b> ▾`) matches this mock; the open
+                   popup is new. See app-spec.md §9 for the decision record. -->
               <span class="ctl">sort: <b>name a–z</b> ▾</span>
               <span class="switch" role="group" aria-label="Result view">
                 <button aria-pressed="true">grid</button>
@@ -398,6 +417,17 @@
         </dl>
       </div>
 
+      <!-- SUPERSEDED (kept for the original design vision, not pixel-current):
+           the real detail page (src/app/tools/[slug]/page.tsx) no longer puts
+           Example Titles and Relationships side-by-side on desktop. Real
+           relationship graphs have more neighbors than this mock's 3-node
+           example, and a 50%-width column was squeezing ToolGraph's layout
+           and labels — plus a real graph's canvas now sizes itself off its
+           own neighbor count (src/components/graph/ToolGraph.tsx), which
+           needs the full column width to do well. Both sections now stack in
+           a single full-width column at every viewport size, matching what
+           this mock's own responsive fallback below 860px already showed.
+           See app-spec.md §9 for the decision record. -->
       <div class="cols">
 
         <!-- example games -->
