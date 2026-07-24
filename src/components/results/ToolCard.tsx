@@ -15,7 +15,7 @@ export default function ToolCard({ tool }: { tool: ToolSearchNode }) {
       className="block border border-line p-3 text-ink no-underline hover:border-ink"
     >
       <div className="flex items-center gap-2.5">
-        <LogoFrame name={tool.name} size={44} />
+        <LogoFrame name={tool.name} logoImageUrl={tool.logoImageUrl} size={44} />
         <span className="text-[22px] leading-[1.1] text-pale">{tool.name}</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
