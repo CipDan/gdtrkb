@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import SearchBar from "@/components/search/SearchBar";
 import FacetPanel from "@/components/search/FacetPanel";
@@ -15,12 +15,13 @@ import { licensingLongLabel, toolTypeLabel } from "@/lib/format";
 import type { ToolsConnection } from "@/lib/graphql/types";
 import type { AreaOfUseTreeNode } from "@/lib/areas";
 
+const EMPTY_RESULTS: ToolsConnection = {
+  nodes: [],
+  pageInfo: { hasNextPage: false, endCursor: null },
+  totalCount: 0,
+};
+
 interface SearchPageClientProps {
-  initialResults: ToolsConnection;
-  // Set when the server-side search in app/page.tsx failed (e.g. upstream
-  // down) so the page renders the same retry banner as a failed client fetch
-  // instead of crashing to app/error.tsx.
-  initialError?: string | null;
   areaTree: AreaOfUseTreeNode[];
   platforms: { slug: string; name: string }[];
   languages: { slug: string; name: string }[];
@@ -57,8 +58,6 @@ function describeActiveFilters(
 // truth for filter/sort/page/view state (app-spec §7.4, mandatory); this
 // component only mirrors it into fetches against the BFF route.
 export default function SearchPageClient({
-  initialResults,
-  initialError = null,
   areaTree,
   platforms,
   languages,
@@ -77,22 +76,31 @@ export default function SearchPageClient({
     return params.toString();
   }, [searchParams]);
 
-  const [data, setData] = useState<ToolsConnection>(initialResults);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(initialError);
   // Cursor stack lives in the URL (see filters.cursorHistory), not local
   // state, so a reload or shared link on page 2+ still supports "prev".
   const cursorHistory = filters.cursorHistory;
 
-  const isFirstRender = useRef(true);
-  // Shared across every call site (effect-driven and manual retry) so a
-  // stale in-flight request can never overwrite results from a newer one.
-  const requestIdRef = useRef(0);
+  // Bumped by the retry button to force a re-fetch of the same requestParams
+  // (a plain requestParams-keyed effect wouldn't re-run for that case).
+  const [retryTick, setRetryTick] = useState(0);
+  const requestKey = `${requestParams}::${retryTick}`;
 
-  const runSearch = useCallback(() => {
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    setError(null);
+  const [result, setResult] = useState<{ data: ToolsConnection; error: string | null }>({
+    data: EMPTY_RESULTS,
+    error: null,
+  });
+  // The key `result` was resolved for. Not yet matching `requestKey` means
+  // the current params/retry attempt is still in flight (covers the initial
+  // mount and every later filter/sort/page/retry change) — this replaces an
+  // explicit `loading` setState so the effect only ever sets state from its
+  // fetch callbacks, never synchronously in the effect body itself.
+  const [resolvedKey, setResolvedKey] = useState<string | null>(null);
+  const data = result.data;
+  const error = result.error;
+  const loading = resolvedKey !== requestKey;
+
+  useEffect(() => {
+    let ignore = false;
 
     fetch(`/api/tools/search?${requestParams}`)
       .then((res) => {
@@ -100,26 +108,27 @@ export default function SearchPageClient({
         return res.json() as Promise<ToolsConnection>;
       })
       .then((json) => {
-        if (requestIdRef.current === requestId) setData(json);
+        if (ignore) return;
+        setResult({ data: json, error: null });
+        setResolvedKey(requestKey);
       })
       .catch(() => {
-        if (requestIdRef.current === requestId) {
-          setError("Search is temporarily unavailable. The API may be cold-starting.");
-        }
-      })
-      .finally(() => {
-        if (requestIdRef.current === requestId) setLoading(false);
+        if (ignore) return;
+        setResult({
+          data: EMPTY_RESULTS,
+          error: "Search is temporarily unavailable. The API may be cold-starting.",
+        });
+        setResolvedKey(requestKey);
       });
-  }, [requestParams]);
 
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    return () => {
+      ignore = true;
+    };
+  }, [requestParams, requestKey]);
 
-    runSearch();
-  }, [runSearch]);
+  function retry() {
+    setRetryTick((tick) => tick + 1);
+  }
 
   function pushUrl(next: FilterState) {
     const qs = serializeFilterState(next).toString();
@@ -196,7 +205,7 @@ export default function SearchPageClient({
               <p className="text-dim">{error}</p>
               <button
                 type="button"
-                onClick={runSearch}
+                onClick={retry}
                 className="mt-2 border border-line px-3 py-1 text-ink hover:text-bright"
               >
                 {"> retry"}

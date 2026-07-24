@@ -1,5 +1,14 @@
 import "server-only";
-import type { Tool } from "@/types";
+import type {
+  Game,
+  GameStoreLink,
+  Language,
+  PlatformRole,
+  RelationshipType,
+  Tool,
+  ToolLinkType,
+  ToolType,
+} from "@/types";
 
 export interface PageInfo {
   hasNextPage: boolean;
@@ -69,4 +78,55 @@ export interface PopularityToolNode {
 export interface PopularityChartData {
   topTools: PopularityToolNode[];
   missingCount: number;
+}
+
+// Detail page (app-spec §8) — the full toolBySlug shape, mapped to domain
+// enum casing. `relationships` is the merged/deduped 1-hop neighborhood (see
+// lib/graphql/tool.ts) feeding both the ToolGraph and its text fallback.
+export interface ToolDetailLink {
+  type: ToolLinkType;
+  url: string;
+  label: string | null;
+}
+
+export interface ToolDetailAreaOfUse {
+  slug: string;
+  name: string;
+  parentSlug: string | null;
+  parentName: string | null;
+}
+
+export interface ToolDetailPlatform {
+  role: PlatformRole;
+  slug: string;
+  name: string;
+}
+
+export interface ToolDetailGame extends Game {
+  storeLinks: GameStoreLink[];
+}
+
+export interface ToolDetailRelationshipNode {
+  slug: string;
+  name: string;
+  type: ToolType;
+  logoImageUrl: string | null;
+}
+
+export interface ToolDetailRelationship {
+  relationshipId: string;
+  type: RelationshipType;
+  note: string | null;
+  mirrored: boolean;
+  sourceTool: ToolDetailRelationshipNode;
+  targetTool: ToolDetailRelationshipNode;
+}
+
+export interface ToolDetail extends Tool {
+  links: ToolDetailLink[];
+  areasOfUse: ToolDetailAreaOfUse[];
+  platforms: ToolDetailPlatform[];
+  languages: Language[];
+  exampleGames: ToolDetailGame[];
+  relationships: ToolDetailRelationship[];
 }

@@ -871,23 +871,26 @@ postgraphile \
 
 ```js
 const http = require("http");
-const { postgraphile } = require("postgraphile");
+const { postgraphile, makePluginHook } = require("postgraphile");
 const ConnectionFilterPlugin = require("postgraphile-plugin-connection-filter");
 const SimplifyInflectorPlugin = require("@graphile-contrib/pg-simplify-inflector");
+const guardrails = require("./guardrails");   // query depth + page-size limits, see below
 
 const middleware = postgraphile(process.env.DATABASE_URL, "public", {
   appendPlugins: [ConnectionFilterPlugin, SimplifyInflectorPlugin],
   disableDefaultMutations: true,   // read-only public surface
   graphiql: process.env.ENABLE_GRAPHIQL === "true",   // off by default; opt in for local/dev
+  pluginHook: makePluginHook([guardrails]),   // depth + page-size limits, see below
   graphileBuildOptions: {
     connectionFilterRelations: true, // enables the some/every/none relation filters
   },
+  retryOnInitFail: true,   // retry the schema build instead of crashing if the DB isn't reachable yet
 });
 
 http.createServer(middleware).listen(5000);
 ```
 
-`postgraphile(...)`'s return value is a plain Node request handler, so no Express/Connect layer is needed. `graphileBuildOptions.connectionFilterRelations: true` is the one option this project's search page depends on that the CLI's own flags cannot express (see the limitation note above for why this project uses library mode over the deprecated `.postgraphilerc.js` route).
+`postgraphile(...)`'s return value is a plain Node request handler, so no Express/Connect layer is needed. `graphileBuildOptions.connectionFilterRelations: true` is the one option this project's search page depends on that the CLI's own flags cannot express (see the limitation note above for why this project uses library mode over the deprecated `.postgraphilerc.js` route). `retryOnInitFail: true` guards against a crash-loop if the database isn't reachable yet at container start (e.g. Neon cold-starting behind Railway) — see `docs/ci-deploy-setup.md` §3.
 
 > Smart tags for the bidirectional view are already declared via `COMMENT ON VIEW` (§4.7), so no separate tags file is required. For production behind untrusted traffic you'd add query cost/pagination limits — that's the one area where the paid Pro plugin (or standard middleware) applies. This project runs custom middleware instead (`db/postgraphile/guardrails.js`, wired into `server.js` via `pluginHook: makePluginHook([guardrails])`), enforcing two limits on the public endpoint:
 > - **Query depth ≤ `MAX_QUERY_DEPTH` (10)**, via `graphql-depth-limit`, registered as a static validation rule (`postgraphile:validationRules:static`).

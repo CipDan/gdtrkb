@@ -12,7 +12,14 @@ export async function GET(request: NextRequest) {
     const results = await searchTools(filterState);
     return NextResponse.json(results);
   } catch (error) {
-    console.error("Tool search failed:", error);
+    // Log the stack (message + trace), not the raw error object: fetchGraphql
+    // throws graphql-request's ClientError, whose own `.request`/`.response`
+    // properties carry the query, user-supplied filter variables, and the
+    // raw upstream body — logging `error` directly would leak those.
+    console.error(
+      "Tool search failed:",
+      error instanceof Error ? error.stack ?? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { error: "Search is temporarily unavailable." },
       { status: 502 },
