@@ -22,7 +22,7 @@ export default function ViewSwitch({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(view.mode)}
-            className={`px-0.5 text-[16px] ${active ? "text-bright" : "text-dim"}`}
+            className={`px-0.5 text-[16px] ${active ? "text-bright" : "text-dim hover:text-ink"}`}
           >
             {active ? `[${view.label}]` : view.label}
           </button>

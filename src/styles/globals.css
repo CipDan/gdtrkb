@@ -69,3 +69,48 @@ body {
   outline: 3px solid var(--bright);
   outline-offset: 2px;
 }
+
+/* Native form controls don't get a pointer cursor by default (unlike <a>);
+   every clickable control in this app is a <button> or a plain element
+   explicitly opting in via .cursor-pointer. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* Themed scrollbar for internally-scrolling panels (currently: the sticky
+   facet sidebar on the search page). Firefox via scrollbar-color/-width;
+   WebKit/Chromium/Edge via the ::-webkit-scrollbar-* pseudo-elements below.
+   The two are deliberately not both applied to the same browser: recent
+   Chromium (~121+) also implements the standard scrollbar-color/-width
+   properties natively, with a fixed rounded/pill thumb shape it does not
+   let ::-webkit-scrollbar-thumb override — so scoping scrollbar-color to
+   "no ::-webkit-scrollbar support" keeps Chromium on the fully-customizable
+   (square-corner) pseudo-element path instead of its own rounded default. */
+@supports not selector(::-webkit-scrollbar) {
+  .phosphor-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+}
+
+.phosphor-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.phosphor-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.phosphor-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--line);
+  border: 2px solid var(--bg);
+  border-radius: 0; /* design tokens call for zero rounded corners everywhere, §3 */
+}
+
+.phosphor-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--dim);
+}
