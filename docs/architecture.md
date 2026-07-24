@@ -30,6 +30,8 @@ gdtrkb/
 │  ├─ schema-spec.md           #   DB schema + GraphQL API contract
 │  ├─ deployment.md            #   hosting patterns + the two deploy paths
 │  ├─ ci-deploy-setup.md       #   CI + deploy runbook (GitHub · Vercel · Railway · Neon)
+│  ├─ screenshots/             #   README screenshots (search, detail, mobile views)
+│  ├─ snapshots/               #   per-session work logs — verbatim historical record, never edited for staleness
 │  └─ design/
 │     ├─ design-tokens-3-phosphor.md # the CHOSEN token doc — "Phosphor" (authoritative for UI)
 │     ├─ design-tokens-*.md          # alternate directions, kept for reference
