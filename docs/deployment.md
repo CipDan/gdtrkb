@@ -51,8 +51,8 @@ Each pattern is tagged for ops effort. **Live querying: yes** applies to all of 
 ### Pattern C — Container-serverless (Cloud Run / AWS App Runner / Azure Container Apps)
 **Ops: low–medium.** Runs your PostGraphile *container*, scales to zero when idle (pay ~nothing), yet keeps a warm instance during traffic so connection reuse works far better than per-request functions. Pair with Neon / Cloud SQL / RDS (through a pooler). Serverless economics without the worst serverless connection problems.
 
-### Pattern D — VPS, self-managed (Hostinger VPS / DigitalOcean Droplet)  ← see `docker-compose.yml`
-**Ops: high.** Rent a Linux box and run Postgres + PostGraphile + a TLS proxy yourself. The included `docker-compose.yml` does exactly this (Postgres, PostGraphile with the filter plugin, and Caddy for automatic HTTPS). Most control and cheapest at scale, but you own patching, backups, and TLS renewal. Optionally add a self-hosted PaaS layer (**Coolify / Dokku / CapRover**) for push-to-deploy convenience on the same box. Note: use a **VPS**, not shared hosting — a persistent Node server needs it.
+### Pattern D — VPS, self-managed (Hostinger VPS / DigitalOcean Droplet)
+**Ops: high.** Rent a Linux box and run Postgres + PostGraphile + a TLS proxy yourself. §7 sketches a `docker-compose.yml` that would do exactly this (Postgres, PostGraphile with the filter plugin, and Caddy for automatic HTTPS) — **not included in this repo**, since GDTRKB's locked deploy path (`app-spec.md` §10) is Vercel + Railway + Neon, not this pattern; build the compose file yourself if you go this route. Most control and cheapest at scale, but you own patching, backups, and TLS renewal. Optionally add a self-hosted PaaS layer (**Coolify / Dokku / CapRover**) for push-to-deploy convenience on the same box. Note: use a **VPS**, not shared hosting — a persistent Node server needs it.
 
 ### Pattern E — Managed Node platform (Hostinger managed Node.js / Cloudways)
 **Ops: medium.** Push-to-deploy a persistent Node app without hand-configuring PM2 and Nginx; the platform handles deploys, backups, SSL. Point it at a managed Postgres. A middle ground between a raw VPS (D) and a PaaS (B).
@@ -86,20 +86,20 @@ The catalog is **read-only and rarely changes**, so it's extremely cacheable and
 
 Prefer to run **no** server? **Hasura Cloud** is the strongest zero-ops alternative that still nails search/order/filter/pagination — accepting the engine swap.
 
-Want full control / lowest long-run cost and don't mind ops? The **VPS route (Pattern D)** with the bundled `docker-compose.yml` is ready to go.
+Want full control / lowest long-run cost and don't mind ops? The **VPS route (Pattern D)** is a sound choice, but you'll need to author the `docker-compose.yml` yourself — §7 sketches the shape.
 
 ---
 
 ## 7. VPS quick start (Pattern D)
 
-See the repo `README.md` for the full walkthrough. In short, on a fresh VPS with Docker installed and DNS pointed at it:
+This repo does not ship a `docker-compose.yml` or a VPS walkthrough — GDTRKB's actual deploy path is Vercel + Railway + Neon (`app-spec.md` §10, runbook in `ci-deploy-setup.md`). What follows is the shape a self-managed compose file for this pattern would take, if you build one: on a fresh VPS with Docker installed and DNS pointed at it,
 
 ```bash
 cp .env.example .env      # then edit: DB password, DOMAIN, ACME_EMAIL
-# place 01_schema.sql and 02_seed.sql next to docker-compose.yml
+# place 01_schema.sql and 02_seed.sql next to your docker-compose.yml
 docker compose up -d --build
 ```
 
-Postgres runs `01_schema.sql` then `02_seed.sql` on first boot, PostGraphile comes up read-only with filtering enabled, and Caddy provisions HTTPS for your domain. GraphiQL is then available at `https://<DOMAIN>/graphiql`.
+Postgres would run `01_schema.sql` then `02_seed.sql` on first boot, PostGraphile come up read-only with filtering enabled, and Caddy provision HTTPS for your domain — GraphiQL then available at `https://<DOMAIN>/graphiql`.
 
 **Hardening notes:** create a dedicated `SELECT`-only Postgres role for PostGraphile to connect as (defense in depth beyond `--disable-default-mutations`); take regular `pg_dump` backups; and for a truly public endpoint under untrusted load, add query cost/pagination limits (middleware, or PostGraphile Pro) — not needed for a private or low-traffic catalog.

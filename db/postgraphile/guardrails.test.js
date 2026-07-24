@@ -238,4 +238,148 @@ assert.ok(
   `expected a fragment-spread-cap error among: ${attackChainErrors.map((e) => e.message).join("; ")}`,
 );
 
+// --- maxPageSizeRule: exact MAX_PAGE_SIZE boundary (source condition is
+// `value > MAX_PAGE_SIZE`, so the limit itself must pass and one over must
+// fail) — the two-operation-default case above never exercises this. ---
+assert.strictEqual(
+  collectErrors(
+    `query AtLimit { tools(first: ${guardrails.MAX_PAGE_SIZE}) { nodes { id } } }`,
+    {},
+  ).length,
+  0,
+  "expected first: MAX_PAGE_SIZE to pass",
+);
+const overLimitErrors = collectErrors(
+  `query OverLimit { tools(first: ${guardrails.MAX_PAGE_SIZE + 1}) { nodes { id } } }`,
+  {},
+);
+assert.strictEqual(
+  overLimitErrors.length,
+  1,
+  `expected first: MAX_PAGE_SIZE+1 to fail, got ${overLimitErrors.length}`,
+);
+assert.match(overLimitErrors[0].message, /must not exceed/);
+
+// A connection selection with neither `first` nor `last` falls through to
+// PostGraphile's default of returning every row — the same unbounded-response
+// risk as an oversized `first`, just spelled by omission — so it must be
+// rejected too.
+const noArgErrors = collectErrors(`query NoArg { tools { nodes { id } } }`, {});
+assert.strictEqual(
+  noArgErrors.length,
+  1,
+  "expected a connection with no first/last to be rejected",
+);
+assert.match(noArgErrors[0].message, /must specify a "first" or "last" argument/);
+
+// `last` is checked the same way as `first` — both branches of the
+// `for (const argNode of [firstArg, lastArg])` loop.
+assert.strictEqual(
+  collectErrors(
+    `query LastOk { tools(last: ${guardrails.MAX_PAGE_SIZE}) { nodes { id } } }`,
+    {},
+  ).length,
+  0,
+  "expected last: MAX_PAGE_SIZE to pass",
+);
+assert.strictEqual(
+  collectErrors(
+    `query LastTooBig { tools(last: ${guardrails.MAX_PAGE_SIZE + 1}) { nodes { id } } }`,
+    {},
+  ).length,
+  1,
+  "expected last: MAX_PAGE_SIZE+1 to fail",
+);
+
+// A field whose selection set has neither `nodes` nor `edges` isn't
+// connection-shaped (e.g. a `{ totalCount }`-only selection, matching
+// POPULARITY_CHART_QUERY's `missing` field) and needs no first/last cap.
+assert.strictEqual(
+  collectErrors(`query CountOnly { tools { totalCount } } `, {}).length,
+  0,
+  "expected a non-connection (totalCount-only) selection to need no first/last",
+);
+
+// A connection reached only through a fragment spread must still be capped —
+// selectionSetHasConnectionShape looks through `...Fields` rather than only
+// direct `nodes`/`edges` children.
+const fragmentWrappedErrors = collectErrors(
+  `query WithFragment { tools { ...ConnFields } }
+   fragment ConnFields on ToolsConnection { nodes { id } }`,
+  {},
+);
+assert.strictEqual(
+  fragmentWrappedErrors.length,
+  1,
+  "expected a fragment-wrapped connection with no first/last to be rejected",
+);
+
+// Nested/relation connections are checked independently at every level: the
+// outer connection can be within bounds while an inner relation connection
+// (e.g. a facet's toolAreaOfUses sub-connection) is left uncapped.
+const nestedErrors = collectErrors(
+  `query Nested { tools(first: 10) { nodes { toolAreaOfUses { nodes { id } } } } }`,
+  {},
+);
+assert.strictEqual(
+  nestedErrors.length,
+  1,
+  `expected only the uncapped inner connection to be rejected, got ${nestedErrors.length}`,
+);
+assert.match(nestedErrors[0].message, /"toolAreaOfUses"/);
+
+// A variable-*supplied* (not just default-supplied) value is resolved from
+// the request's actual variables — the two-operation-default test above only
+// exercises the literalDefaults fallback path, never a real supplied value.
+assert.strictEqual(
+  collectErrors(`query ByVar($n: Int) { tools(first: $n) { nodes { id } } }`, {
+    n: guardrails.MAX_PAGE_SIZE,
+  }).length,
+  0,
+  "expected an in-bounds variable-supplied first to pass",
+);
+assert.strictEqual(
+  collectErrors(`query ByVar($n: Int) { tools(first: $n) { nodes { id } } }`, {
+    n: guardrails.MAX_PAGE_SIZE + 1,
+  }).length,
+  1,
+  "expected an out-of-bounds variable-supplied first to fail",
+);
+
+// --- maxQueryCostRule: exact MAX_QUERY_COST boundary (source condition is
+// `cost > MAX_QUERY_COST`) — the under/over-budget cases above use generous
+// margins (5 and +50) and never exercise the limit itself. ---
+assert.strictEqual(
+  collectStaticErrors(buildAliasBatchQuery(guardrails.MAX_QUERY_COST)).length,
+  0,
+  "expected exactly MAX_QUERY_COST fields to pass",
+);
+const oneOverCostErrors = collectStaticErrors(
+  buildAliasBatchQuery(guardrails.MAX_QUERY_COST + 1),
+);
+assert.strictEqual(
+  oneOverCostErrors.length,
+  1,
+  `expected MAX_QUERY_COST + 1 fields to fail, got ${oneOverCostErrors.length}`,
+);
+
+// --- guardedDepthLimit: exact MAX_QUERY_DEPTH boundary, independent of the
+// fragment-spread cap covered above. buildDeepNoFragmentsQuery(N) checks
+// depthSoFar values 0..N against maxDepth (traced through
+// graphql-depth-limit's determineDepth), so N == MAX_QUERY_DEPTH is the last
+// value that passes and N == MAX_QUERY_DEPTH + 1 is the first that fails —
+// the existing +2/-2 cases above never pin down the exact edge. ---
+assert.strictEqual(
+  collectStaticErrors(buildDeepNoFragmentsQuery(guardrails.MAX_QUERY_DEPTH))
+    .length,
+  0,
+  "expected exactly MAX_QUERY_DEPTH levels to pass",
+);
+assert.strictEqual(
+  collectStaticErrors(buildDeepNoFragmentsQuery(guardrails.MAX_QUERY_DEPTH + 1))
+    .length,
+  1,
+  "expected MAX_QUERY_DEPTH + 1 levels to fail",
+);
+
 console.log("guardrails.test.js: ok");

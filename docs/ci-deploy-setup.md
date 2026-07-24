@@ -20,6 +20,7 @@ whole security model, so don't collapse them into one connection string.
 | Neon **owner / migration** role (DDL + INSERT) | Neon **direct** (unpooled) | CI migration / reseed job | GitHub secret `DATABASE_URL_MIGRATIONS` |
 | Neon **`SELECT`-only** role | Neon **pooled** (`-pooler` host) | PostGraphile at runtime | Railway variable `DATABASE_URL` |
 | PostGraphile public URL (`…/graphql`) | Railway domain | Next.js BFF (server-only) | Vercel env `POSTGRAPHILE_URL` |
+| Neon **owner / migration role's username** (same role as the first row — not the read-only `gdtrkb_ro`) | n/a (a role name, not a connection string) | `db-preview.yml`'s `create-branch-action`, to build each PR preview branch's writable connection string | GitHub repo variable `NEON_DB_ROLE` |
 
 The browser never sees any of these; the Next.js server calls PostGraphile
 server-to-server, and PostGraphile calls Neon.
@@ -204,7 +205,11 @@ create an isolated branch per PR and tear it down on close; the create action
 outputs a `db_url` you feed straight into your migration/test step. Full project
 / branch / role provisioning is available via `neonctl` and the Neon Terraform
 provider. Only manual bit: make an account and one API key (the GitHub
-integration then auto-creates `NEON_API_KEY` / `NEON_PROJECT_ID`).
+integration then auto-creates `NEON_API_KEY` / `NEON_PROJECT_ID`). One more repo
+variable isn't auto-created and must be set by hand: `NEON_DB_ROLE` (§1),
+naming the owner/migration role — `create-branch-action`'s `username` input
+needs it to build a preview branch's connection string, and there's no
+integration that infers it for you.
 
 **Railway.** Deploy from Actions with the Railway CLI (`railway up`) or a
 marketplace action using a `RAILWAY_TOKEN`; put build/deploy settings (start
@@ -226,16 +231,24 @@ creation is a one-time manual step.
 A **Neon preview branch per PR** is the highest-value automation for this
 project, because it turns `validate-seed` from a text check into a real load
 test against a production-shaped Postgres — with zero risk to prod and automatic
-teardown. This is now committed as `.github/workflows/db-preview.yml`; the shape:
+teardown. This is now committed as `.github/workflows/db-preview.yml`, kept in
+sync with this doc; the current shape (both jobs skip cleanly, rather than
+fail, until `NEON_PROJECT_ID`/`NEON_DB_ROLE` are set — see §1):
 
 ```yaml
 name: DB preview branch
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
+concurrency:
+  group: db-preview-${{ github.event.number }}
+  cancel-in-progress: true
 jobs:
   reseed-branch:
-    if: github.event.action != 'closed'
+    if: >-
+      github.event.action != 'closed' &&
+      vars.NEON_PROJECT_ID != '' &&
+      vars.NEON_DB_ROLE != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -244,15 +257,21 @@ jobs:
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}
+          username: ${{ vars.NEON_DB_ROLE }}
           api_key: ${{ secrets.NEON_API_KEY }}
       # The branch is a copy-on-write clone of production, so it already has the
-      # schema — reapply only the (idempotent) seed.
+      # schema — reapply only the (idempotent) seed. Note: create-branch-action
+      # returns an *existing* branch's details unchanged rather than resetting
+      # it, so a schema change made mid-PR isn't exercised here — only the seed
+      # data is guaranteed fresh on every push.
       - name: Reseed the branch
         env:
           DATABASE_URL: ${{ steps.branch.outputs.db_url }}
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/02_seed.sql
   delete-branch:
-    if: github.event.action == 'closed'
+    if: >-
+      github.event.action == 'closed' &&
+      vars.NEON_PROJECT_ID != ''
     runs-on: ubuntu-latest
     steps:
       - uses: neondatabase/delete-branch-action@v3
@@ -261,6 +280,17 @@ jobs:
           branch: preview/pr-${{ github.event.number }}
           api_key: ${{ secrets.NEON_API_KEY }}
 ```
+
+`create-branch-action`'s `username` input is required (not optional) — without
+it the step fails with "Input required and not supplied: username." It must
+name the owner/migration role, not `gdtrkb_ro`, since the reseed step runs
+`02_seed.sql`'s `TRUNCATE` + `INSERT` statements.
+
+Note also: `pull_request` runs triggered by a fork don't receive repository
+secrets (`NEON_API_KEY` would be empty), only variables — so a fork PR could
+clear the `if:` gate and then fail at `create-branch-action`. `reseed-branch`
+isn't in the required-status-checks list (§5.1), so this can't block a merge;
+worth revisiting only if the repo starts taking outside contributions.
 
 Everything beyond this (full Railway/Vercel IaC via Terraform) is possible but
 more than a small, mostly-static catalog needs; the one-time dashboard setup

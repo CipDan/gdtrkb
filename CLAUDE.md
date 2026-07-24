@@ -37,7 +37,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - If something is unclear or could be improved, **say so and suggest a better approach** rather than guessing.
 
 ## Constraints (hard rules)
-- **Libraries:** the approved baseline is Next.js + TypeScript + Tailwind + `graphql-request` + Recharts + (Cytoscape.js **or** React Flow, whichever the graph work standardizes on). **Do not add any other major library without asking first** — recommend it, explain why, and wait for approval.
+- **Libraries:** the approved baseline is Next.js + TypeScript + Tailwind + `graphql-request` + Recharts + (Cytoscape.js **or** React Flow, whichever the graph work standardizes on) + Vitest (unit/component tests). **Do not add any other major library without asking first** — recommend it, explain why, and wait for approval.
 - **Secrets:** never expose secret keys or the GraphQL/DB URL in client code. All external/API access goes through **server routes or Server Components**. `lib/graphql/*` is server-only and must never be imported by a client component. Never commit secrets — only names go in `.env.example`.
 - **Data access:** the browser never calls PostGraphile directly. All GraphQL runs server-side (BFF). Search is the only live API path; detail pages are SSG/ISR.
 - **UI fidelity:** apply the chosen token doc **exactly** (colors, type scale, spacing, radius, borders, component treatments). Where a hi-fi mock exists, **match it pixel-for-pixel** — layout, spacing, padding, font sizes and hierarchy, colors, alignment, proportions. Do **not** approximate or simplify visual design unless explicitly asked. Where only tokens exist (no mock), apply them exactly and don't invent style. Never hardcode hex values in components — use the token variables.
@@ -51,9 +51,9 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - One-time scaffold (before `package.json` exists): `npx create-next-app@latest`
 - `npm run dev` — local dev server
 - `npm run build` / `npm run start` — production build / serve
-- `npm run lint` — ESLint  ·  `npm run typecheck` — `tsc --noEmit`  ·  `npm test` — tests
+- `npm run lint` — ESLint  ·  `npm run typecheck` — `tsc --noEmit`  ·  `npm run test` — Vitest
 - DB (managed): `psql "$DATABASE_URL" -f db/01_schema.sql && psql "$DATABASE_URL" -f db/02_seed.sql`
-- DB (local, VPS path): `docker compose -f db/docker-compose.yml up -d`
+- DB (local, self-managed VPS): no compose file is included in this repo — `docs/deployment.md` Pattern D documents the pattern (Postgres + PostGraphile + Caddy) if you want to build one; the project's actual deploy path is Vercel + Railway + Neon (`docs/ci-deploy-setup.md`)
 
 ## Communication
 Be concise. When you finish a change, say **what changed** and **how to test it** — no filler.
