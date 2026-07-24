@@ -70,7 +70,7 @@ export const FACET_OPTIONS_QUERY = gql`
 export const POPULARITY_CHART_QUERY = gql`
   query PopularityChart($first: Int!) {
     topTools: tools(
-      orderBy: CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC
+      orderBy: [CONFIRMED_COMMERCIAL_TITLES_COUNT_DESC, ID_ASC]
       first: $first
       filter: { confirmedCommercialTitlesCount: { isNull: false } }
     ) {

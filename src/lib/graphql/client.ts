@@ -43,3 +43,14 @@ export function withTimeout<T>(
       .finally(() => clearTimeout(timer));
   });
 }
+
+// Shared by every GraphQL call site to avoid repeating the
+// withTimeout(() => graphqlClient.request(...)) boilerplate.
+export function fetchGraphql<T>(
+  document: string,
+  variables?: Record<string, unknown>,
+): Promise<T> {
+  return withTimeout((signal) =>
+    graphqlClient.request<T>({ document, variables, signal }),
+  );
+}

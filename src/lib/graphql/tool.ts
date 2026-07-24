@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { graphqlClient, withTimeout } from "@/lib/graphql/client";
+import { fetchGraphql } from "@/lib/graphql/client";
 import { TOOL_BY_SLUG_QUERY, TOOL_SLUGS_QUERY } from "@/lib/graphql/queries";
 import { fromGraphqlEnum } from "@/lib/graphql/enumCasing";
 import type { ToolDetail, ToolDetailRelationship } from "@/lib/graphql/types";
@@ -116,13 +116,7 @@ function mergeRelationships(
 // `null` return means the query succeeded but the slug doesn't exist, so the
 // caller can call notFound() instead of showing an error.
 export const getToolBySlug = cache(async (slug: string): Promise<ToolDetail | null> => {
-  const result = await withTimeout((signal) =>
-    graphqlClient.request<ToolBySlugResult>({
-      document: TOOL_BY_SLUG_QUERY,
-      variables: { slug },
-      signal,
-    }),
-  );
+  const result = await fetchGraphql<ToolBySlugResult>(TOOL_BY_SLUG_QUERY, { slug });
 
   const tool = result.toolBySlug;
   if (!tool) return null;
@@ -177,12 +171,7 @@ export const getToolBySlug = cache(async (slug: string): Promise<ToolDetail | nu
 // failing the whole build over a transient upstream blip.
 export async function getAllToolSlugs(): Promise<string[]> {
   try {
-    const result = await withTimeout((signal) =>
-      graphqlClient.request<ToolSlugsResult>({
-        document: TOOL_SLUGS_QUERY,
-        signal,
-      }),
-    );
+    const result = await fetchGraphql<ToolSlugsResult>(TOOL_SLUGS_QUERY);
     return result.tools.nodes.map((node) => node.slug);
   } catch (err) {
     console.error("getAllToolSlugs failed; falling back to empty slug list", err);

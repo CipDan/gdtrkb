@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${vt323.variable} h-full`}>
-      <body className="min-h-full">
+      <body className="h-full">
         <div className="mx-auto flex min-h-full max-w-[1180px] flex-col border-line md:border-x">
           <Topbar />
           <main className="flex flex-1 flex-col p-4">{children}</main>

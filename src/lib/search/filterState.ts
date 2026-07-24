@@ -42,6 +42,8 @@ export const DEFAULT_FILTER_STATE: FilterState = {
 
 const TOOL_TYPES = TOOL_TYPE_OPTIONS.map((o) => o.value);
 const LICENSING_MODELS = LICENSING_OPTIONS.map((o) => o.value);
+const SORT_KEYS: readonly SortKey[] = ["name", "popularity"];
+const VIEW_MODES: readonly ViewMode[] = ["grid", "table"];
 
 // Rejects unrecognized values instead of letting them through as an unsafe
 // cast, which would otherwise reach GraphQL as an invalid enum (502).
@@ -72,8 +74,8 @@ export function parseFilterState(params: URLSearchParams): FilterState {
     language: params.get("language"),
     licensing: parseEnum(params.get("licensing"), LICENSING_MODELS),
     hasBuiltInEditor: parseBoolean(params.get("hasBuiltInEditor")),
-    sort: (params.get("sort") as SortKey | null) ?? DEFAULT_FILTER_STATE.sort,
-    view: (params.get("view") as ViewMode | null) ?? DEFAULT_FILTER_STATE.view,
+    sort: parseEnum(params.get("sort"), SORT_KEYS) ?? DEFAULT_FILTER_STATE.sort,
+    view: parseEnum(params.get("view"), VIEW_MODES) ?? DEFAULT_FILTER_STATE.view,
     cursor: params.get("cursor"),
     cursorHistory: params.getAll("back").map((v) => (v === "" ? null : v)),
   };

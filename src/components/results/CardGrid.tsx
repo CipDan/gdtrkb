@@ -2,10 +2,7 @@ import ToolCard from "@/components/results/ToolCard";
 import type { ResultsViewProps } from "@/components/results/types";
 
 // Default results view (app-spec §7.5 / phosphor-hifi-mock.html .cardgrid).
-export default function CardGrid({ nodes, loading, error }: ResultsViewProps) {
-  if (error) return null;
-  if (!loading && nodes.length === 0) return null;
-
+export default function CardGrid({ nodes, loading }: ResultsViewProps) {
   return (
     <div
       className="grid gap-3"
