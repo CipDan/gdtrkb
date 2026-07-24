@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
+import { graphqlClient, withTimeout } from "@/lib/graphql/client";
 import { POPULARITY_CHART_QUERY } from "@/lib/graphql/queries";
 import type { PopularityChartData, PopularityToolNode } from "@/lib/graphql/types";
 
@@ -16,11 +16,11 @@ interface PopularityChartWire {
 export const getPopularityChartData = cache(
   async (): Promise<PopularityChartData> => {
     try {
-      const result = await withTimeout(
+      const result = await withTimeout((signal) =>
         graphqlClient.request<PopularityChartWire>({
           document: POPULARITY_CHART_QUERY,
           variables: { first: CHART_SIZE },
-          signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+          signal,
         }),
       );
 

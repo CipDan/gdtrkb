@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
+import { graphqlClient, withTimeout } from "@/lib/graphql/client";
 import { FACET_OPTIONS_QUERY } from "@/lib/graphql/queries";
 import type { FacetOptions } from "@/lib/graphql/types";
 
@@ -16,10 +16,10 @@ interface FacetOptionsWire {
 // filters) when the API is cold-starting or unreachable (app-spec §7.9).
 export const getFacetOptions = cache(async (): Promise<FacetOptions> => {
   try {
-    const result = await withTimeout(
+    const result = await withTimeout((signal) =>
       graphqlClient.request<FacetOptionsWire>({
         document: FACET_OPTIONS_QUERY,
-        signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+        signal,
       }),
     );
 

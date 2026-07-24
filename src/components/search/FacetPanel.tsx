@@ -4,6 +4,10 @@ import { TOOL_TYPE_OPTIONS, LICENSING_OPTIONS } from "@/lib/search/staticFacetOp
 import type { FilterState } from "@/lib/search/filterState";
 import type { AreaOfUseTreeNode } from "@/lib/areas";
 
+// React.ReactNode / React.KeyboardEvent below need no import: @types/react
+// declares `export as namespace React`, so the type namespace is global.
+// Same pattern is used in layout.tsx, Badge.tsx, Tag.tsx, and SpecSheet.tsx.
+
 interface FacetPanelProps {
   filters: FilterState;
   areaTree: AreaOfUseTreeNode[];

@@ -1,6 +1,6 @@
 import "server-only";
 import { gql } from "graphql-request";
-import { GRAPHQL_TIMEOUT_MS, graphqlClient, withTimeout } from "@/lib/graphql/client";
+import { graphqlClient, withTimeout } from "@/lib/graphql/client";
 import type { AreaOfUseOption } from "@/lib/graphql/types";
 
 export interface AreaOfUseTreeNode extends AreaOfUseOption {
@@ -37,11 +37,11 @@ interface AreaOfUseDescendantsResult {
 export async function getAreaOfUseDescendantSlugs(
   rootSlug: string,
 ): Promise<string[]> {
-  const result = await withTimeout(
+  const result = await withTimeout((signal) =>
     graphqlClient.request<AreaOfUseDescendantsResult>({
       document: AREA_DESCENDANTS_QUERY,
       variables: { rootSlug },
-      signal: AbortSignal.timeout(GRAPHQL_TIMEOUT_MS),
+      signal,
     }),
   );
 
