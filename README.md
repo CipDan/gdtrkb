@@ -62,6 +62,7 @@ All GraphQL access is server-side (BFF pattern) — the browser never talks to P
 ### Prerequisites
 - Node.js 22+
 - A PostgreSQL database (e.g. a free [Neon](https://neon.tech) project)
+- The PostgreSQL client (`psql`), used by the schema/seed step below
 
 ### 1. Clone & install
 ```bash
@@ -84,7 +85,7 @@ DATABASE_URL="postgres://..." PORT=5000 ENABLE_GRAPHIQL=true node server.js
 ```
 
 ### 4. Configure and run the frontend
-Copy `.env.example` to `.env.local` and set `POSTGRAPHILE_URL` to the address from step 3 (e.g. `http://localhost:5000/graphql`):
+Step 3 keeps running in its terminal, so do this from a new terminal, back at the repo root. Copy `.env.example` to `.env.local` and set `POSTGRAPHILE_URL` to the address from step 3 (e.g. `http://localhost:5000/graphql`):
 ```bash
 cp .env.example .env.local
 npm run dev
@@ -92,6 +93,7 @@ npm run dev
 Visit `http://localhost:3000`.
 
 ### Scripts
+
 | Command | Purpose |
 |---|---|
 | `npm run dev` | Local dev server |
