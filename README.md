@@ -119,4 +119,4 @@ The app and schema are feature-complete against the MVP spec, but the seeded cat
 
 ## Scope
 
-Read-only, public, curator-populated catalog — no accounts, no write/submission path, no admin UI. Data is maintained via SQL seed by the curator.
+Read-only, public, curator-populated catalog — no accounts, no write/submission path, no admin UI. Data is maintained via SQL seed by the curator. Catalog entries are limited to tools with a real, publicly known licensing path — exclusively in-house or negotiated-only tools (e.g. Frostbite, Anvil) are out of scope.
