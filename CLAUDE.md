@@ -42,6 +42,7 @@ Before any Next.js work, find and read the relevant doc in `node_modules/next/di
 - **Data access:** the browser never calls PostGraphile directly. All GraphQL runs server-side (BFF). Search is the only live API path; detail pages are SSG/ISR.
 - **UI fidelity:** apply the chosen token doc **exactly** (colors, type scale, spacing, radius, borders, component treatments). Where a hi-fi mock exists, **match it pixel-for-pixel** — layout, spacing, padding, font sizes and hierarchy, colors, alignment, proportions. Do **not** approximate or simplify visual design unless explicitly asked. Where only tokens exist (no mock), apply them exactly and don't invent style. Never hardcode hex values in components — use the token variables.
 - **Scope:** build the MVP only. Anything in `app-spec §12` is context, not a build target.
+- **Catalog content:** only tools with a real, publicly known licensing path belong in the catalog — free, paid, subscription, tiered, or royalty-based terms anyone can find. Tools that are exclusively in-house (e.g. Frostbite, Anvil) or licensed only via private, undisclosed negotiation (e.g. Decima) are out of scope, permanently. See `app-spec.md` §0.
 
 ## Naming
 - Public wordmark: **GDTRKB**. Full name **Game Development Tools & Resources Knowledge Bank** appears only in docs, on the landing/search page, and as the browser tab `<title>`.

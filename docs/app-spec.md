@@ -28,6 +28,8 @@ The MVP is a **read-only, public, curator-populated catalog** with search, facet
 
 Two MVP requirements exist specifically so Phase 2 slots in without a rewrite. They are **mandatory MVP requirements**, not previews: the **pluggable results view switch** (§7.3) and **URL-based filter state** (§7.4), plus the **reusable `ToolGraph` component** (§7.7). Build them now.
 
+**Catalog eligibility is licensing-bounded, not just feature-bounded.** A tool is only cataloged if there is a real, publicly known way for an outside developer or studio to license or obtain it — any `licensing_model` value from the schema spec (§3), self-serve or not. Tools that are exclusively in-house (e.g. Frostbite, Anvil, REDengine) or licensed only through private, per-deal negotiation with no public terms (e.g. Decima) are out of scope **permanently**, not deferred to Phase 2 — there is deliberately no `licensing_model` value for "not available."
+
 ---
 
 ## 1. System overview

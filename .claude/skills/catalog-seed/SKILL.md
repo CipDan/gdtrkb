@@ -65,6 +65,9 @@ ever disagree, the schema is correct — flag the drift.
 
 ## Content rules
 
+### Catalog eligibility (check this first)
+Before adding a tool, confirm an outside developer or studio has a real, publicly known way to license or obtain it — self-serve (free, paid, subscription, tiered, royalty-based) or not. **Don't add it** if the only way to use it is a private deal negotiated case-by-case with no public terms, or it has never been licensed to anyone outside its parent studio — there is no `licensing_model` value for "not available," by design (`app-spec.md` §0, `schema-spec.md` §8). Stays out: Frostbite (EA), Anvil (Ubisoft), REDengine (CD Projekt Red), IW Engine (Activision), Fox Engine (Konami), and similar in-house-only or negotiated-only engines.
+
 ### Area-of-use tagging
 - **Tag the most specific leaf that applies**, never a parent and its own child
   on the same tool. Rollup queries recover the parent, so tagging leaves loses

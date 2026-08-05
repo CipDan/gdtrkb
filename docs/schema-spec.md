@@ -926,7 +926,7 @@ http.createServer(middleware).listen(5000);
 
 ## 8. Open items / assumptions to confirm
 
-- **Enum values** for `tool_type`, `licensing_model`, and `relationship_type` are the agreed set; extend by adding enum values (a migration) as new cases arise. `licensing_model` now includes `free_proprietary` (free-to-use but closed-source) alongside `free_open_source`.
+- **Enum values** for `tool_type`, `licensing_model`, and `relationship_type` are the agreed set; extend by adding enum values (a migration) as new cases arise. `licensing_model` now includes `free_proprietary` (free-to-use but closed-source) alongside `free_open_source`. It deliberately has no value for "not publicly available" — every value implies a real, publicly known path to use the tool, so tools that are exclusively in-house or licensed only through private, undisclosed negotiation are excluded from the catalog entirely rather than tagged with a placeholder (`app-spec.md` §0).
 - **Area-of-use depth** assumed shallow (≤2 levels). A recursive `area_of_use_descendants(root_slug)` function (§4.9) already handles arbitrary depth, so deepening the tree later needs no query changes.
 - **Image sourcing policy**: fields store *references* + attribution, not hosted copyrighted assets. Confirm the curator's clearance policy per source.
 - **Symmetric edges**: `PAIRS_WELL_WITH` is stored once and **exposed bidirectionally through GraphQL** via the `tool_relationship_bidirectional` view (§4.7, §5.2f) — decided.
